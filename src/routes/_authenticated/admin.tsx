@@ -208,14 +208,68 @@ function CoordinatorsAdmin() {
         <input placeholder="Photo URL (optional)" value={f.photo_url} onChange={(e) => setF({ ...f, photo_url: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
         <button className="sm:col-span-4 inline-flex items-center justify-center gap-2 rounded-md bg-navy text-white py-2 text-sm font-semibold"><Plus size={14} /> Add</button>
       </form>
-      <List items={data} table="coordinators" qkey={["admin-coordinators"]} render={(c) => (<div className="flex items-center gap-3"><span className="text-[10px] uppercase tracking-wider rounded-full bg-gold/20 text-[oklch(0.55_0.13_75)] px-2 py-0.5">{c.type}</span><div><p className="font-semibold">{c.name}</p><p className="text-xs text-muted-foreground">{c.designation}</p></div></div>)} />
+      <div className="space-y-2">
+        {data?.map((c: any) => (
+          <CoordinatorRow key={c.id} c={c} />
+        ))}
+      </div>
     </>
+  );
+}
+
+function CoordinatorRow({ c }: { c: any }) {
+  const qc = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState({ name: c.name, designation: c.designation, type: c.type, photo_url: c.photo_url ?? "" });
+  async function save() {
+    const { error } = await supabase.from("coordinators").update(draft).eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success("Saved"); setEditing(false); qc.invalidateQueries({ queryKey: ["admin-coordinators"] });
+  }
+  async function del() {
+    if (!confirm("Delete this member?")) return;
+    const { error } = await supabase.from("coordinators").delete().eq("id", c.id);
+    if (error) return toast.error(error.message);
+    toast.success("Deleted"); qc.invalidateQueries({ queryKey: ["admin-coordinators"] });
+  }
+  if (editing) {
+    return (
+      <div className="rounded-xl bg-card border border-border p-4 grid sm:grid-cols-4 gap-2">
+        <select value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+          <option value="faculty">Faculty</option><option value="student">Student</option>
+        </select>
+        <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        <input value={draft.designation} onChange={(e) => setDraft({ ...draft, designation: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        <input value={draft.photo_url} onChange={(e) => setDraft({ ...draft, photo_url: e.target.value })} placeholder="Photo URL" className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        <div className="sm:col-span-4 flex gap-2 justify-end">
+          <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs border border-border"><X size={13} /> Cancel</button>
+          <button onClick={save} className="inline-flex items-center gap-1 rounded-md bg-navy text-white px-3 py-1.5 text-xs font-semibold"><Check size={13} /> Save</button>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-xl bg-card border border-border p-4 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <span className="text-[10px] uppercase tracking-wider rounded-full bg-gold/20 text-[oklch(0.55_0.13_75)] px-2 py-0.5">{c.type}</span>
+        <div className="min-w-0">
+          <p className="font-semibold truncate">{c.name}</p>
+          <p className="text-xs text-muted-foreground truncate">{c.designation}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1">
+        <button onClick={() => setEditing(true)} className="p-2 rounded-md text-muted-foreground hover:text-navy hover:bg-muted transition"><Pencil size={15} /></button>
+        <button onClick={del} className="p-2 rounded-md text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition"><Trash2 size={15} /></button>
+      </div>
+    </div>
   );
 }
 
 /* -------- Users -------- */
 function UsersAdmin() {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const deleteFn = useServerFn(deleteUserAccount);
   const { data } = useQuery({
     queryKey: ["admin-users"],
     queryFn: async () => {
@@ -224,28 +278,65 @@ function UsersAdmin() {
       return (profiles ?? []).map((p: any) => ({ ...p, is_admin: roles?.some((r: any) => r.user_id === p.id && r.role === "admin") }));
     },
   });
-  async function toggleAdmin(userId: string, makeAdmin: boolean) {
-    if (makeAdmin) {
+  async function setRole(userId: string, role: "admin" | "student") {
+    if (role === "admin") {
       const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
       if (error) return toast.error(error.message);
     } else {
       const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
       if (error) return toast.error(error.message);
     }
-    toast.success("Updated"); qc.invalidateQueries({ queryKey: ["admin-users"] });
+    toast.success("Role updated"); qc.invalidateQueries({ queryKey: ["admin-users"] }); qc.invalidateQueries({ queryKey: ["admin-stats"] });
+  }
+  async function removeUser(userId: string, name: string) {
+    if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
+    try {
+      await deleteFn({ data: { userId } });
+      toast.success("User deleted");
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to delete");
+    }
   }
   return (
-    <div className="rounded-xl bg-card border border-border overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground"><tr><th className="text-left p-3">Name</th><th className="text-left p-3">Student ID</th><th className="text-left p-3">Email</th><th className="text-right p-3">Role</th></tr></thead>
+    <div className="rounded-xl bg-card border border-border overflow-x-auto">
+      <table className="w-full text-sm min-w-[700px]">
+        <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+          <tr>
+            <th className="text-left p-3">Name</th>
+            <th className="text-left p-3">Student ID</th>
+            <th className="text-left p-3">Email</th>
+            <th className="text-left p-3">Role</th>
+            <th className="text-right p-3">Actions</th>
+          </tr>
+        </thead>
         <tbody>
           {data?.map((u: any) => (
             <tr key={u.id} className="border-t border-border">
               <td className="p-3 font-medium">{u.full_name || "—"}</td>
               <td className="p-3 text-muted-foreground">{u.student_id || "—"}</td>
               <td className="p-3 text-muted-foreground">{u.email || "—"}</td>
+              <td className="p-3">
+                <select
+                  value={u.is_admin ? "admin" : "student"}
+                  onChange={(e) => setRole(u.id, e.target.value as any)}
+                  disabled={u.id === user?.id}
+                  className="text-xs rounded-md border border-border bg-background px-2 py-1.5 disabled:opacity-50"
+                >
+                  <option value="student">Student</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </td>
               <td className="p-3 text-right">
-                <button onClick={() => toggleAdmin(u.id, !u.is_admin)} className={`px-3 py-1 rounded-full text-xs font-semibold ${u.is_admin ? "bg-gold text-navy-deep" : "bg-muted text-muted-foreground hover:bg-navy hover:text-white transition"}`}>{u.is_admin ? "Admin" : "Make admin"}</button>
+                <button
+                  onClick={() => removeUser(u.id, u.full_name || u.email || "this user")}
+                  disabled={u.id === user?.id}
+                  title={u.id === user?.id ? "You cannot delete yourself" : "Delete user"}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-rose-600 hover:bg-rose-50 transition disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <Trash2 size={13} /> Delete
+                </button>
               </td>
             </tr>
           ))}
