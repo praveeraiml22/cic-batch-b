@@ -1,0 +1,52 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+async function assertAdmin(supabase: any, userId: string) {
+  const { data, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: admin only");
+}
+
+export const deleteUserAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    if (data.userId === userId) throw new Error("Cannot delete your own account");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const getAdminStats = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const [users, admins, assignments, events, anns, coords, notifs] = await Promise.all([
+      supabase.from("profiles").select("*", { count: "exact", head: true }),
+      supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin"),
+      supabase.from("assignments").select("*", { count: "exact", head: true }),
+      supabase.from("events").select("*", { count: "exact", head: true }),
+      supabase.from("announcements").select("*", { count: "exact", head: true }),
+      supabase.from("coordinators").select("*", { count: "exact", head: true }),
+      supabase.from("notifications").select("*", { count: "exact", head: true }),
+    ]);
+    return {
+      users: users.count ?? 0,
+      admins: admins.count ?? 0,
+      assignments: assignments.count ?? 0,
+      events: events.count ?? 0,
+      announcements: anns.count ?? 0,
+      coordinators: coords.count ?? 0,
+      notifications: notifs.count ?? 0,
+    };
+  });
