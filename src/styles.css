@@ -130,6 +130,10 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+
+  #lovable-badge {
+    display: none !important;
+  }
 }
 
 @utility text-gradient-gold {

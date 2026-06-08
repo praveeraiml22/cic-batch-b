@@ -50,3 +50,57 @@ export const getAdminStats = createServerFn({ method: "GET" })
       notifications: notifs.count ?? 0,
     };
   });
+
+export const listAdminUsers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const [{ data: usersData, error: usersError }, { data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
+      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
+      supabaseAdmin.from("profiles").select("*"),
+      supabaseAdmin.from("user_roles").select("user_id,role"),
+    ]);
+
+    if (usersError) throw new Error(usersError.message);
+    if (profilesError) throw new Error(profilesError.message);
+    if (rolesError) throw new Error(rolesError.message);
+
+    return usersData.users.map((authUser) => {
+      const profile = profiles?.find((p: any) => p.id === authUser.id);
+      const userRoles = roles?.filter((r: any) => r.user_id === authUser.id).map((r: any) => r.role) ?? [];
+      return {
+        id: authUser.id,
+        email: authUser.email ?? profile?.email ?? "",
+        full_name: profile?.full_name ?? authUser.user_metadata?.full_name ?? authUser.user_metadata?.name ?? "",
+        student_id: profile?.student_id ?? authUser.user_metadata?.student_id ?? "",
+        created_at: authUser.created_at,
+        email_confirmed_at: authUser.email_confirmed_at,
+        is_admin: userRoles.includes("admin"),
+      };
+    });
+  });
+
+export const setUserAdminRole = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ userId: z.string().uuid(), role: z.enum(["admin", "student"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as any;
+    await assertAdmin(supabase, userId);
+    if (data.userId === userId && data.role === "student") throw new Error("Cannot remove your own admin access");
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.role === "admin") {
+      const { error } = await supabaseAdmin.from("user_roles").upsert(
+        { user_id: data.userId, role: "admin" },
+        { onConflict: "user_id,role" },
+      );
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", "admin");
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true };
+  });
