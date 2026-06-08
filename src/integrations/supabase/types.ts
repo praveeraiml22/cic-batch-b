@@ -14,16 +14,314 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      announcements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_broadcast: boolean
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_broadcast?: boolean
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_broadcast?: boolean
+          title?: string
+        }
+        Relationships: []
+      }
+      assignments: {
+        Row: {
+          created_at: string
+          description: string | null
+          feedback: string | null
+          file_name: string | null
+          file_size: number | null
+          file_url: string | null
+          grade: string | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          semester: string | null
+          status: Database["public"]["Enums"]["assignment_status"]
+          subject: string
+          submitted_by: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          feedback?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          grade?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          semester?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          subject: string
+          submitted_by: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          feedback?: string | null
+          file_name?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          grade?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          semester?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"]
+          subject?: string
+          submitted_by?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coordinators: {
+        Row: {
+          created_at: string
+          designation: string
+          id: string
+          name: string
+          photo_url: string | null
+          sort_order: number
+          type: Database["public"]["Enums"]["coordinator_type"]
+        }
+        Insert: {
+          created_at?: string
+          designation: string
+          id?: string
+          name: string
+          photo_url?: string | null
+          sort_order?: number
+          type: Database["public"]["Enums"]["coordinator_type"]
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          id?: string
+          name?: string
+          photo_url?: string | null
+          sort_order?: number
+          type?: Database["public"]["Enums"]["coordinator_type"]
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          category: Database["public"]["Enums"]["document_category"]
+          created_at: string
+          description: string | null
+          file_name: string
+          file_size: number | null
+          file_url: string
+          id: string
+          tags: string[] | null
+          title: string
+          uploaded_by: string
+          version: number
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          description?: string | null
+          file_name: string
+          file_size?: number | null
+          file_url: string
+          id?: string
+          tags?: string[] | null
+          title: string
+          uploaded_by: string
+          version?: number
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["document_category"]
+          created_at?: string
+          description?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_url?: string
+          id?: string
+          tags?: string[] | null
+          title?: string
+          uploaded_by?: string
+          version?: number
+        }
+        Relationships: []
+      }
+      events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          event_date: string | null
+          id: string
+          image_url: string | null
+          tag: string | null
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          tag?: string | null
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          event_date?: string | null
+          id?: string
+          image_url?: string | null
+          tag?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean
+          link: string | null
+          message: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          link?: string | null
+          message?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          department: string | null
+          email: string | null
+          full_name: string
+          id: string
+          mobile: string | null
+          semester: string | null
+          student_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          full_name?: string
+          id: string
+          mobile?: string | null
+          semester?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          department?: string | null
+          email?: string | null
+          full_name?: string
+          id?: string
+          mobile?: string | null
+          semester?: string | null
+          student_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "student"
+      assignment_status:
+        | "submitted"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "resubmission_required"
+      coordinator_type: "faculty" | "student"
+      document_category:
+        | "assignments"
+        | "reports"
+        | "research_papers"
+        | "project_files"
+        | "notes"
+        | "misc"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +448,24 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "student"],
+      assignment_status: [
+        "submitted",
+        "under_review",
+        "approved",
+        "rejected",
+        "resubmission_required",
+      ],
+      coordinator_type: ["faculty", "student"],
+      document_category: [
+        "assignments",
+        "reports",
+        "research_papers",
+        "project_files",
+        "notes",
+        "misc",
+      ],
+    },
   },
 } as const
