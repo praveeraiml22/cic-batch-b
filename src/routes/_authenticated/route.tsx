@@ -1,5 +1,6 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import {
   LayoutDashboard,
   FileText,
@@ -14,6 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin, useProfile } from "@/hooks/use-profile";
+import { ensureMemberAccount } from "@/lib/account.functions";
 import { Toaster } from "sonner";
 import cicLogo from "@/assets/cic-logo.png.asset.json";
 
@@ -39,8 +41,9 @@ const navItems = [
 
 function AuthedLayout() {
   const { user } = useAuth();
+  const ensureAccount = useServerFn(ensureMemberAccount);
   const { data: profile } = useProfile(user?.id);
-  const { data: isAdmin } = useIsAdmin(user?.id);
+  const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
   const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -48,6 +51,11 @@ function AuthedLayout() {
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    ensureAccount({}).catch(() => undefined);
+  }, [ensureAccount, user?.id]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -62,6 +70,7 @@ function AuthedLayout() {
       <aside className="hidden lg:flex w-64 flex-col bg-navy-deep text-white sticky top-0 h-screen">
         <SidebarContent
           isAdmin={!!isAdmin}
+          adminLoading={adminLoading}
           pathname={pathname}
           onLogout={handleLogout}
           name={profile?.full_name || user?.email || ""}
@@ -89,6 +98,7 @@ function AuthedLayout() {
         <div className="lg:hidden fixed inset-0 z-50 bg-navy-deep text-white pt-14">
           <SidebarContent
             isAdmin={!!isAdmin}
+            adminLoading={adminLoading}
             pathname={pathname}
             onLogout={handleLogout}
             name={profile?.full_name || user?.email || ""}
@@ -106,12 +116,14 @@ function AuthedLayout() {
 
 function SidebarContent({
   isAdmin,
+  adminLoading,
   pathname,
   onLogout,
   name,
   studentId,
 }: {
   isAdmin: boolean;
+  adminLoading: boolean;
   pathname: string;
   onLogout: () => void;
   name: string;
@@ -147,22 +159,28 @@ function SidebarContent({
             </Link>
           );
         })}
-        {isAdmin && (
+        {(adminLoading || isAdmin) && (
           <>
             <div className="mt-6 mb-2 px-3 text-[10px] uppercase tracking-[0.2em] text-gold-soft/60">
               Admin
             </div>
-            <Link
-              to="/admin"
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
-                pathname.startsWith("/admin")
-                  ? "bg-gold text-navy-deep shadow-gold"
-                  : "text-white/80 hover:bg-white/5 hover:text-white"
-              }`}
-            >
-              <Shield size={17} />
-              Admin Panel
-            </Link>
+            {adminLoading ? (
+              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white/45">
+                <Shield size={17} /> Checking access…
+              </div>
+            ) : (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition ${
+                  pathname.startsWith("/admin")
+                    ? "bg-gold text-navy-deep shadow-gold"
+                    : "text-white/80 hover:bg-white/5 hover:text-white"
+                }`}
+              >
+                <Shield size={17} />
+                Admin Console
+              </Link>
+            )}
           </>
         )}
       </nav>
