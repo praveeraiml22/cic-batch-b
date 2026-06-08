@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -270,23 +270,19 @@ function UsersAdmin() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const deleteFn = useServerFn(deleteUserAccount);
+  const listUsersFn = useServerFn(listAdminUsers);
+  const setRoleFn = useServerFn(setUserAdminRole);
   const { data } = useQuery({
     queryKey: ["admin-users"],
-    queryFn: async () => {
-      const { data: profiles } = await supabase.from("profiles").select("*").order("created_at", { ascending: false });
-      const { data: roles } = await supabase.from("user_roles").select("user_id,role");
-      return (profiles ?? []).map((p: any) => ({ ...p, is_admin: roles?.some((r: any) => r.user_id === p.id && r.role === "admin") }));
-    },
+    queryFn: () => listUsersFn({}),
   });
   async function setRole(userId: string, role: "admin" | "student") {
-    if (role === "admin") {
-      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-      if (error) return toast.error(error.message);
-    } else {
-      const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
-      if (error) return toast.error(error.message);
+    try {
+      await setRoleFn({ data: { userId, role } });
+      toast.success("Role updated"); qc.invalidateQueries({ queryKey: ["admin-users"] }); qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to update role");
     }
-    toast.success("Role updated"); qc.invalidateQueries({ queryKey: ["admin-users"] }); qc.invalidateQueries({ queryKey: ["admin-stats"] });
   }
   async function removeUser(userId: string, name: string) {
     if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
