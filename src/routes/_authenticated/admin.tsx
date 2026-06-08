@@ -1,13 +1,15 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, CalendarDays, UserCog, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
+import { deleteUserAccount, getAdminStats } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -32,20 +34,51 @@ function AdminPage() {
   return (
     <div className="p-6 lg:p-10 max-w-7xl mx-auto">
       <PageHeader title="Admin Panel" subtitle="Manage members, content, and submissions." />
-      <Tabs defaultValue="assignments">
+      <Tabs defaultValue="stats">
         <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
-          <TabsTrigger value="announcements">Announcements</TabsTrigger>
-          <TabsTrigger value="coordinators">Coordinators</TabsTrigger>
+          <TabsTrigger value="stats">Statistics</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
+          <TabsTrigger value="announcements">Notices</TabsTrigger>
+          <TabsTrigger value="events">Events</TabsTrigger>
+          <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
-        <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
-        <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
-        <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
-        <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
+        <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
         <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
+        <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
+        <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
+        <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
+        <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
       </Tabs>
+    </div>
+  );
+}
+
+/* -------- Stats -------- */
+function StatsAdmin() {
+  const fetchStats = useServerFn(getAdminStats);
+  const { data, isLoading } = useQuery({ queryKey: ["admin-stats"], queryFn: () => fetchStats({}) });
+  if (isLoading) return <div className="grid place-items-center py-12"><Loader2 className="animate-spin" /></div>;
+  const cards = [
+    { label: "Members", value: data?.users ?? 0, icon: Users },
+    { label: "Admins", value: data?.admins ?? 0, icon: Shield },
+    { label: "Assignments", value: data?.assignments ?? 0, icon: FileText },
+    { label: "Events", value: data?.events ?? 0, icon: CalendarDays },
+    { label: "Notices", value: data?.announcements ?? 0, icon: Megaphone },
+    { label: "Team Members", value: data?.coordinators ?? 0, icon: UserCog },
+    { label: "Notifications Sent", value: data?.notifications ?? 0, icon: Bell },
+  ];
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      {cards.map((c) => (
+        <div key={c.label} className="rounded-2xl bg-card border border-border p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{c.label}</span>
+            <c.icon size={16} className="text-muted-foreground" />
+          </div>
+          <p className="mt-3 font-display text-3xl font-bold">{c.value}</p>
+        </div>
+      ))}
     </div>
   );
 }
