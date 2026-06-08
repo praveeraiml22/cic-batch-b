@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import {
@@ -6,9 +6,7 @@ import {
   Building2,
   Lightbulb,
   Target,
-  Users,
   Trophy,
-  Calendar,
   GraduationCap,
   Mail,
   MapPin,
@@ -23,6 +21,7 @@ import {
   Send,
 } from "lucide-react";
 import cicLogo from "@/assets/cic-logo.png.asset.json";
+import bridgeBg from "@/assets/bridge-bg.jpg";
 
 export const Route = createFileRoute("/")({
   component: LandingPage,
@@ -44,8 +43,6 @@ function LandingPage() {
       <Navbar />
       <Hero />
       <About />
-      <Highlights />
-      <Activities />
       <Coordinators />
       <Contact />
       <Footer />
@@ -66,8 +63,6 @@ function Navbar() {
 
   const links = [
     { label: "About", href: "#about" },
-    { label: "Highlights", href: "#highlights" },
-    { label: "Activities", href: "#activities" },
     { label: "Team", href: "#team" },
     { label: "Contact", href: "#contact" },
   ];
@@ -82,7 +77,7 @@ function Navbar() {
     >
       <nav className="mx-auto max-w-7xl px-6 lg:px-10 h-20 flex items-center justify-between">
         <a href="#" className="flex items-center gap-3 group">
-          <div className="h-11 w-11 rounded-full bg-white p-1.5 shadow-gold ring-1 ring-gold/40">
+          <div className="h-11 w-11 rounded-xl bg-white p-1.5 shadow-gold ring-1 ring-gold/40">
             <img src={cicLogo.url} alt="CIC Logo" className="h-full w-full object-contain" />
           </div>
           <div className="leading-tight">
@@ -96,7 +91,7 @@ function Navbar() {
             <li key={l.href}>
               <a
                 href={l.href}
-                className="text-sm font-medium text-white/75 hover:text-gold transition-colors"
+                className="text-sm font-medium text-white/80 hover:text-gold transition-colors"
               >
                 {l.label}
               </a>
@@ -105,18 +100,18 @@ function Navbar() {
         </ul>
 
         <div className="hidden lg:flex items-center gap-3">
-          <a
-            href="#about"
-            className="px-4 py-2 text-sm font-medium text-white/80 hover:text-white transition"
+          <Link
+            to="/auth"
+            className="px-4 py-2 text-sm font-medium text-white/85 hover:text-white transition"
           >
-            Learn More
-          </a>
-          <a
-            href="#login"
+            Login
+          </Link>
+          <Link
+            to="/auth"
             className="px-5 py-2.5 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] text-navy-deep text-sm font-semibold shadow-gold hover:brightness-110 transition"
           >
-            Member Login
-          </a>
+            Join CIC
+          </Link>
         </div>
 
         <button
@@ -143,13 +138,13 @@ function Navbar() {
               </li>
             ))}
             <li>
-              <a
-                href="#login"
+              <Link
+                to="/auth"
                 onClick={() => setOpen(false)}
                 className="inline-block mt-2 px-5 py-2.5 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] text-navy-deep text-sm font-semibold"
               >
                 Member Login
-              </a>
+              </Link>
             </li>
           </ul>
         </div>
@@ -161,16 +156,19 @@ function Navbar() {
 /* ---------- HERO ---------- */
 function Hero() {
   return (
-    <section className="relative bg-hero overflow-hidden pt-32 pb-24 lg:pt-44 lg:pb-36">
-      {/* Decorative grid */}
+    <section className="relative overflow-hidden pt-32 pb-24 lg:pt-40 lg:pb-36 bg-navy-deep">
+      {/* Bridge architectural background */}
       <div
-        className="absolute inset-0 opacity-[0.07] pointer-events-none"
+        aria-hidden
+        className="absolute inset-0 bg-cover bg-center opacity-60"
+        style={{ backgroundImage: `url(${bridgeBg})` }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0"
         style={{
-          backgroundImage:
-            "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-          maskImage:
-            "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          background:
+            "linear-gradient(180deg, oklch(0.18 0.05 260 / 0.6) 0%, oklch(0.13 0.04 260 / 0.85) 100%)",
         }}
       />
       {/* Glow blobs */}
@@ -179,7 +177,7 @@ function Hero() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1.4 }}
-        className="absolute -top-20 -left-20 h-96 w-96 rounded-full bg-gold/20 blur-3xl"
+        className="absolute -top-20 -left-20 h-96 w-96 rounded-full bg-gold/15 blur-3xl"
       />
       <motion.div
         aria-hidden
@@ -197,7 +195,7 @@ function Hero() {
             className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-white/5 px-4 py-1.5 text-xs uppercase tracking-[0.2em] text-gold-soft backdrop-blur"
           >
             <Sparkles size={14} />
-            Department of Civil Engineering
+            MNNIT Allahabad · Est. Civil Dept.
           </motion.div>
 
           <motion.h1
@@ -206,33 +204,44 @@ function Hero() {
             transition={{ duration: 0.7, delay: 0.1 }}
             className="mt-6 font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight"
           >
-            Civil <span className="text-gradient-gold">Innovation</span> Club
+            Civil <span className="text-gradient-gold italic">Innovation</span>
+            <br />
+            Club
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2 }}
-            className="mt-6 max-w-xl text-lg text-white/70 leading-relaxed"
+            transition={{ duration: 0.7, delay: 0.15 }}
+            className="mt-6 font-display italic text-xl text-white/85"
           >
-            Innovating Infrastructure, Building the Future. The student-led
-            innovation hub of Motilal Nehru National Institute of Technology,
-            Allahabad — where engineering vision becomes tomorrow's reality.
+            Innovating Infrastructure, Building the Future.
+          </motion.p>
+
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.25 }}
+            className="mt-4 max-w-xl text-base text-white/65 leading-relaxed"
+          >
+            A student-driven hub at Motilal Nehru National Institute of
+            Technology where curiosity meets concrete — research, workshops, and
+            projects that shape tomorrow's built environment.
           </motion.p>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
+            transition={{ duration: 0.7, delay: 0.35 }}
             className="mt-10 flex flex-wrap gap-4"
           >
-            <a
-              href="#login"
+            <Link
+              to="/auth"
               className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] px-7 py-3.5 text-sm font-semibold text-navy-deep shadow-gold hover:brightness-110 transition"
             >
               Member Login
               <ArrowRight size={16} className="group-hover:translate-x-0.5 transition-transform" />
-            </a>
+            </Link>
             <a
               href="#about"
               className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white hover:bg-white/10 transition backdrop-blur"
@@ -240,33 +249,22 @@ function Hero() {
               Learn More
             </a>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 1, delay: 0.6 }}
-            className="mt-12 flex items-center gap-6 text-xs text-white/55"
-          >
-            <div className="h-px w-12 bg-gold/40" />
-            <span className="uppercase tracking-[0.25em]">Est. MNNIT Allahabad</span>
-          </motion.div>
         </div>
 
-        {/* Logo showcase */}
+        {/* Square logo showcase */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.2 }}
           className="relative mx-auto"
         >
-          <div className="absolute -inset-10 rounded-full bg-gold/20 blur-3xl" />
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 rounded-full border border-dashed border-gold/30"
-          />
-          <div className="relative h-72 w-72 lg:h-96 lg:w-96 rounded-full bg-white p-10 shadow-elegant ring-1 ring-gold/30">
-            <img src={cicLogo.url} alt="CIC official logo" className="h-full w-full object-contain" />
+          <div className="absolute -inset-10 bg-gold/15 blur-3xl rounded-3xl" />
+          <div className="relative h-72 w-72 sm:h-80 sm:w-80 lg:h-[26rem] lg:w-[26rem] rounded-2xl bg-white p-8 shadow-elegant ring-1 ring-gold/40">
+            <img
+              src={cicLogo.url}
+              alt="CIC official logo"
+              className="h-full w-full object-contain"
+            />
           </div>
         </motion.div>
       </div>
@@ -329,16 +327,24 @@ function About() {
         </div>
 
         <div className="mt-20 rounded-3xl bg-gradient-to-br from-navy to-navy-deep p-10 lg:p-14 text-white relative overflow-hidden">
-          <div className="absolute inset-0 opacity-10" style={{
-            backgroundImage: "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)",
-            backgroundSize: "32px 32px",
-          }} />
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)",
+              backgroundSize: "32px 32px",
+            }}
+          />
           <div className="relative grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
             <div>
               <p className="text-xs uppercase tracking-[0.25em] text-gold-soft">What we do</p>
-              <h3 className="mt-3 text-3xl lg:text-4xl font-display font-semibold">Innovation in every direction</h3>
+              <h3 className="mt-3 text-3xl lg:text-4xl font-display font-semibold">
+                Innovation in every direction
+              </h3>
               <p className="mt-4 text-white/70 leading-relaxed">
-                From smart materials to sustainable structures, members explore the full spectrum of modern civil engineering through hands-on programs.
+                From smart materials to sustainable structures, members explore
+                the full spectrum of modern civil engineering through hands-on
+                programs.
               </p>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
@@ -355,143 +361,6 @@ function About() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ---------- HIGHLIGHTS ---------- */
-function Highlights() {
-  const stats = [
-    { value: 180, suffix: "+", label: "Active Members", icon: Users },
-    { value: 35, suffix: "+", label: "Projects Delivered", icon: Lightbulb },
-    { value: 24, suffix: "+", label: "Workshops Hosted", icon: GraduationCap },
-    { value: 42, suffix: "+", label: "Events Conducted", icon: Calendar },
-  ];
-  return (
-    <section id="highlights" className="py-24 lg:py-32 bg-muted/40 border-y border-border">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <SectionHeader
-          eyebrow="Club Highlights"
-          title="By the numbers"
-          subtitle="A growing community of engineers, makers, and researchers."
-        />
-        <div className="mt-14 grid grid-cols-2 lg:grid-cols-4 gap-5">
-          {stats.map((s, i) => (
-            <motion.div
-              key={s.label}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
-              className="rounded-2xl bg-card border border-border p-7 text-center hover:shadow-elegant transition"
-            >
-              <div className="mx-auto h-12 w-12 rounded-xl bg-navy/5 grid place-items-center mb-4">
-                <s.icon className="text-navy" size={20} />
-              </div>
-              <Counter to={s.value} suffix={s.suffix} />
-              <p className="mt-2 text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                {s.label}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function Counter({ to, suffix = "" }: { to: number; suffix?: string }) {
-  const [n, setN] = useState(0);
-  const [started, setStarted] = useState(false);
-  return (
-    <motion.p
-      onViewportEnter={() => {
-        if (started) return;
-        setStarted(true);
-        const dur = 1400;
-        const start = performance.now();
-        const tick = (now: number) => {
-          const p = Math.min((now - start) / dur, 1);
-          const eased = 1 - Math.pow(1 - p, 3);
-          setN(Math.round(eased * to));
-          if (p < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      }}
-      viewport={{ once: true, margin: "-50px" }}
-      className="font-display text-4xl lg:text-5xl font-bold text-navy"
-    >
-      {n}
-      <span className="text-gold">{suffix}</span>
-    </motion.p>
-  );
-}
-
-/* ---------- ACTIVITIES ---------- */
-function Activities() {
-  const items = [
-    {
-      tag: "Workshop",
-      date: "Mar 2026",
-      title: "Smart Materials in Modern Construction",
-      desc: "A two-day hands-on workshop exploring self-healing concrete, geopolymers, and the future of sustainable building.",
-    },
-    {
-      tag: "Event",
-      date: "Feb 2026",
-      title: "Innovate-a-thon: Resilient Cities",
-      desc: "48-hour interdisciplinary hackathon challenging teams to design climate-resilient urban infrastructure.",
-    },
-    {
-      tag: "Announcement",
-      date: "Jan 2026",
-      title: "CIC Research Grant Program Launched",
-      desc: "Funding opportunities for student-led research in structural engineering, transport, and water systems.",
-    },
-  ];
-  return (
-    <section id="activities" className="py-24 lg:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
-        <SectionHeader
-          eyebrow="Recent Activities"
-          title="What's happening at CIC"
-          subtitle="Workshops, announcements, and events curated for our innovation community."
-        />
-        <div className="mt-14 grid md:grid-cols-3 gap-6">
-          {items.map((it, i) => (
-            <motion.article
-              key={it.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-              className="group rounded-2xl overflow-hidden border border-border bg-card hover:shadow-elegant hover:-translate-y-1 transition-all"
-            >
-              <div className="relative h-44 bg-gradient-to-br from-navy to-navy-deep overflow-hidden">
-                <div className="absolute inset-0 opacity-20" style={{
-                  backgroundImage: "linear-gradient(45deg, transparent 48%, oklch(0.78 0.13 85) 48%, oklch(0.78 0.13 85) 52%, transparent 52%)",
-                  backgroundSize: "20px 20px",
-                }} />
-                <div className="relative h-full flex items-end p-6">
-                  <span className="inline-flex items-center gap-2 rounded-full bg-gold/90 text-navy-deep text-[10px] uppercase tracking-[0.18em] font-semibold px-3 py-1">
-                    {it.tag}
-                  </span>
-                </div>
-              </div>
-              <div className="p-7">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground">{it.date}</p>
-                <h3 className="mt-2 text-xl font-display font-semibold text-foreground group-hover:text-navy transition">
-                  {it.title}
-                </h3>
-                <p className="mt-3 text-sm text-muted-foreground leading-relaxed">{it.desc}</p>
-                <div className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-navy">
-                  Read more <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </motion.article>
-          ))}
         </div>
       </div>
     </section>
@@ -521,7 +390,9 @@ function Coordinators() {
         />
 
         <div className="mt-16">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">Faculty Coordinators</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">
+            Faculty Coordinators
+          </h3>
           <div className="grid sm:grid-cols-2 gap-6">
             {faculty.map((p) => (
               <PersonCard key={p.name} {...p} accent />
@@ -530,7 +401,9 @@ function Coordinators() {
         </div>
 
         <div className="mt-16">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">Student Coordinators</h3>
+          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">
+            Student Coordinators
+          </h3>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {students.map((p) => (
               <PersonCard key={p.name} {...p} />
@@ -595,7 +468,8 @@ function Contact() {
             Have an idea worth building?
           </h2>
           <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-md">
-            Reach out for collaborations, sponsorships, or to join CIC. We're always open to engineers, dreamers, and doers.
+            Reach out for collaborations, sponsorships, or to join CIC. We're
+            always open to engineers, dreamers, and doers.
           </p>
 
           <ul className="mt-10 space-y-5">
@@ -701,7 +575,7 @@ function Footer() {
       <div className="mx-auto max-w-7xl px-6 lg:px-10 py-14 grid md:grid-cols-[1.4fr_1fr_1fr] gap-10">
         <div>
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-white p-1.5 ring-1 ring-gold/40">
+            <div className="h-12 w-12 rounded-xl bg-white p-1.5 ring-1 ring-gold/40">
               <img src={cicLogo.url} alt="CIC Logo" className="h-full w-full object-contain" />
             </div>
             <div>
@@ -710,16 +584,17 @@ function Footer() {
             </div>
           </div>
           <p className="mt-5 max-w-sm text-sm leading-relaxed">
-            Innovating Infrastructure, Building the Future. A student-led initiative of the Department of Civil Engineering, MNNIT Allahabad.
+            Innovating Infrastructure, Building the Future. A student-led
+            initiative of the Department of Civil Engineering, MNNIT Allahabad.
           </p>
         </div>
         <div>
           <p className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Explore</p>
           <ul className="space-y-2.5 text-sm">
             <li><a href="#about" className="hover:text-gold transition">About</a></li>
-            <li><a href="#highlights" className="hover:text-gold transition">Highlights</a></li>
-            <li><a href="#activities" className="hover:text-gold transition">Activities</a></li>
             <li><a href="#team" className="hover:text-gold transition">Team</a></li>
+            <li><a href="#contact" className="hover:text-gold transition">Contact</a></li>
+            <li><Link to="/auth" className="hover:text-gold transition">Member Login</Link></li>
           </ul>
         </div>
         <div>
