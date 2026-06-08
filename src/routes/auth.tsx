@@ -2,8 +2,10 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Loader2, Mail, Lock, User, Hash } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { ensureMemberAccount } from "@/lib/account.functions";
 import { toast } from "sonner";
 import cicLogo from "@/assets/cic-logo.png.asset.json";
 
@@ -19,6 +21,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const ensureAccount = useServerFn(ensureMemberAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -51,8 +54,9 @@ function AuthPage() {
         toast.success("Account created. You can sign in now.");
         setMode("signin");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw error;
+        await ensureAccount({});
         toast.success("Welcome back!");
         navigate({ to: "/dashboard" });
       }
@@ -74,6 +78,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
+    await ensureAccount({});
     navigate({ to: "/dashboard" });
   }
 
@@ -180,8 +185,8 @@ function AuthPage() {
                 type="button"
                 onClick={async () => {
                   if (!email) return toast.error("Enter your email above first");
-                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/auth`,
+                  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+                    redirectTo: `${window.location.origin}/reset-password`,
                   });
                   if (error) toast.error(error.message);
                   else toast.success("Password reset link sent to your email");
