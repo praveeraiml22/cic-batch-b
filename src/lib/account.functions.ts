@@ -19,7 +19,7 @@ export const ensureMemberAccount = createServerFn({ method: "POST" })
         full_name: metadata.full_name ?? metadata.name ?? "",
         student_id: metadata.student_id ?? null,
       },
-      { onConflict: "id", ignoreDuplicates: false },
+      { onConflict: "id", ignoreDuplicates: true },
     );
     if (profileError) throw new Error(profileError.message);
 
