@@ -87,7 +87,7 @@ function DashboardPage() {
             <ActionCard to="/assignments" title="Submit assignment" desc="Upload a new submission" />
             <ActionCard to="/documents" title="Browse documents" desc="Notes, reports, research" />
             <ActionCard to="/notifications" title="Notifications" desc="See latest updates" />
-            <ActionCard to="/profile" title="Edit profile" desc="Update your details" />
+            <ActionCard to="/profile" title="View profile" desc="See your member details" />
           </div>
         </div>
 
