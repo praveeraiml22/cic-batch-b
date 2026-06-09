@@ -58,8 +58,9 @@ function AuthedLayout() {
   }, [ensureAccount, user?.id]);
 
   async function handleLogout() {
+    await supabase.auth.stopAutoRefresh();
     await supabase.auth.signOut();
-    navigate({ to: "/auth" });
+    navigate({ to: "/auth", replace: true });
   }
 
   return (
@@ -187,7 +188,7 @@ function SidebarContent({
 
       <div className="px-4 py-4 border-t border-white/10 space-y-3">
         <div className="px-2">
-          <p className="text-sm font-medium text-white truncate">{name}</p>
+          <p className="text-sm font-medium text-white truncate">{name || "Member"}</p>
           {studentId && (
             <p className="text-xs text-white/50 truncate">ID: {studentId}</p>
           )}

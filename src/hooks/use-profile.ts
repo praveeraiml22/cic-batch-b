@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { getCurrentAccount } from "@/lib/account.functions";
 
 export function useProfile(userId?: string) {
   return useQuery({
@@ -18,18 +20,11 @@ export function useProfile(userId?: string) {
 }
 
 export function useIsAdmin(userId?: string) {
+  const getAccount = useServerFn(getCurrentAccount);
   return useQuery({
     queryKey: ["is-admin", userId],
     enabled: !!userId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId!)
-        .eq("role", "admin")
-        .maybeSingle();
-      if (error) throw error;
-      return !!data;
-    },
+    retry: 1,
+    queryFn: async () => (await getAccount({})).isAdmin,
   });
 }

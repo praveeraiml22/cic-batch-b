@@ -3,7 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 async function assertAdmin(supabase: any, userId: string) {
-  const { data, error } = await supabase
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const { data, error } = await supabaseAdmin
     .from("user_roles")
     .select("role")
     .eq("user_id", userId)
@@ -11,6 +12,7 @@ async function assertAdmin(supabase: any, userId: string) {
     .maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Forbidden: admin only");
+  return supabaseAdmin;
 }
 
 export const deleteUserAccount = createServerFn({ method: "POST" })
@@ -18,9 +20,8 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    const supabaseAdmin = await assertAdmin(supabase, userId);
     if (data.userId === userId) throw new Error("Cannot delete your own account");
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
@@ -30,15 +31,15 @@ export const getAdminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    const supabaseAdmin = await assertAdmin(supabase, userId);
     const [users, admins, assignments, events, anns, coords, notifs] = await Promise.all([
-      supabase.from("profiles").select("*", { count: "exact", head: true }),
-      supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin"),
-      supabase.from("assignments").select("*", { count: "exact", head: true }),
-      supabase.from("events").select("*", { count: "exact", head: true }),
-      supabase.from("announcements").select("*", { count: "exact", head: true }),
-      supabase.from("coordinators").select("*", { count: "exact", head: true }),
-      supabase.from("notifications").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin"),
+      supabaseAdmin.from("assignments").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("events").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("announcements").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("coordinators").select("*", { count: "exact", head: true }),
+      supabaseAdmin.from("notifications").select("*", { count: "exact", head: true }),
     ]);
     return {
       users: users.count ?? 0,
@@ -55,8 +56,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const supabaseAdmin = await assertAdmin(supabase, userId);
 
     const [{ data: usersData, error: usersError }, { data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
@@ -88,10 +88,15 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ userId: z.string().uuid(), role: z.enum(["admin", "student"]) }).parse(d))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
-    await assertAdmin(supabase, userId);
+    const supabaseAdmin = await assertAdmin(supabase, userId);
     if (data.userId === userId && data.role === "student") throw new Error("Cannot remove your own admin access");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error: studentRoleError } = await supabaseAdmin.from("user_roles").upsert(
+      { user_id: data.userId, role: "student" },
+      { onConflict: "user_id,role" },
+    );
+    if (studentRoleError) throw new Error(studentRoleError.message);
+
     if (data.role === "admin") {
       const { error } = await supabaseAdmin.from("user_roles").upsert(
         { user_id: data.userId, role: "admin" },

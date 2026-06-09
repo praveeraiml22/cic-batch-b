@@ -11,12 +11,15 @@ export function useAuth() {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
       setLoading(false);
     });
+    supabase.auth.getUser()
+      .then(({ data }) => {
+        setUser(data.user ?? null);
+        return supabase.auth.getSession();
+      })
+      .then(({ data }) => setSession(data.session ?? null))
+      .finally(() => setLoading(false));
     return () => sub.subscription.unsubscribe();
   }, []);
 

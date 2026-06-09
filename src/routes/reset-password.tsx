@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +20,20 @@ function ResetPasswordPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get("code");
+    if (!code) {
+      setReady(true);
+      return;
+    }
+    supabase.auth.exchangeCodeForSession(code)
+      .then(({ error }) => {
+        if (error) toast.error(error.message);
+      })
+      .finally(() => setReady(true));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -56,9 +70,9 @@ function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="rounded-2xl bg-white/95 backdrop-blur p-8 shadow-elegant space-y-4">
           <PasswordField label="New password" value={password} onChange={setPassword} />
           <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} />
-          <button disabled={loading} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-4 py-3 text-sm font-semibold text-white hover:bg-navy-deep transition disabled:opacity-50">
-            {loading && <Loader2 className="animate-spin" size={16} />}
-            Update password
+          <button disabled={loading || !ready} className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-4 py-3 text-sm font-semibold text-white hover:bg-navy-deep transition disabled:opacity-50">
+            {(loading || !ready) && <Loader2 className="animate-spin" size={16} />}
+            {ready ? "Update password" : "Preparing reset…"}
           </button>
         </form>
       </section>
