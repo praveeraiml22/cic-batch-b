@@ -25,6 +25,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -39,23 +40,28 @@ function AuthPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return toast.error("Enter your email address");
+    if (password.length < 8) return toast.error("Password must be at least 8 characters");
+    if (mode === "signup" && (!fullName.trim() || !studentId.trim())) return toast.error("Enter your name and student ID");
     setLoading(true);
     try {
       if (mode === "signup") {
         const { data, error } = await supabase.auth.signUp({
-          email: email.trim(),
+          email: normalizedEmail,
           password,
           options: {
             emailRedirectTo: `${window.location.origin}/dashboard`,
-            data: { full_name: fullName, student_id: studentId },
+            data: { full_name: fullName.trim(), student_id: studentId.trim() },
           },
         });
         if (error) throw error;
         if (data.session) await ensureAccount({});
-        toast.success("Account created. You can sign in now.");
+        toast.success(data.session ? "Account created. Redirecting…" : "Account created. Check your email to confirm it, then sign in.");
+        if (data.session) navigate({ to: "/dashboard" });
         setMode("signin");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
         await ensureAccount({});
         toast.success("Welcome back!");
@@ -185,16 +191,25 @@ function AuthPage() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (!email) return toast.error("Enter your email above first");
-                  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-                    redirectTo: `${window.location.origin}/reset-password`,
-                  });
-                  if (error) toast.error(error.message);
-                  else toast.success("Password reset link sent to your email");
+                  const normalizedEmail = email.trim().toLowerCase();
+                  if (!normalizedEmail) return toast.error("Enter your email above first");
+                  setResetLoading(true);
+                  try {
+                    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+                      redirectTo: `${window.location.origin}/reset-password`,
+                    });
+                    if (error) throw error;
+                    toast.success("Password reset link sent to your email");
+                  } catch (err) {
+                    toast.error(err instanceof Error ? err.message : "Could not send reset email");
+                  } finally {
+                    setResetLoading(false);
+                  }
                 }}
+                disabled={resetLoading}
                 className="w-full text-xs text-muted-foreground hover:text-navy transition"
               >
-                Forgot your password?
+                {resetLoading ? "Sending reset link…" : "Forgot your password?"}
               </button>
             )}
           </form>
