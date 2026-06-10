@@ -98,6 +98,30 @@ export type Database = {
         }
         Relationships: []
       }
+      auth_logs: {
+        Row: {
+          action: string
+          error_message: string | null
+          id: string
+          occurred_at: string
+          user_email: string | null
+        }
+        Insert: {
+          action: string
+          error_message?: string | null
+          id?: string
+          occurred_at?: string
+          user_email?: string | null
+        }
+        Update: {
+          action?: string
+          error_message?: string | null
+          id?: string
+          occurred_at?: string
+          user_email?: string | null
+        }
+        Relationships: []
+      }
       coordinators: {
         Row: {
           created_at: string
@@ -235,38 +259,50 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
           avatar_url: string | null
+          bio: string | null
           created_at: string
           department: string | null
           email: string | null
           full_name: string
           id: string
           mobile: string | null
+          roll_number: string | null
           semester: string | null
+          status: string
           student_id: string | null
           updated_at: string
         }
         Insert: {
+          address?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
           full_name?: string
           id: string
           mobile?: string | null
+          roll_number?: string | null
           semester?: string | null
+          status?: string
           student_id?: string | null
           updated_at?: string
         }
         Update: {
+          address?: string | null
           avatar_url?: string | null
+          bio?: string | null
           created_at?: string
           department?: string | null
           email?: string | null
           full_name?: string
           id?: string
           mobile?: string | null
+          roll_number?: string | null
           semester?: string | null
+          status?: string
           student_id?: string | null
           updated_at?: string
         }
