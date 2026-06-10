@@ -121,6 +121,7 @@ function AssignmentsAdmin() {
             <input defaultValue={a.grade ?? ""} placeholder="Grade" onBlur={(e) => e.target.value !== (a.grade ?? "") && update(a.id, { grade: e.target.value })}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm w-24" />
             {a.file_url && <AdminDownloadButton path={a.file_url} name={a.file_name} />}
+          </div>
         </div>
       ))}
     </div>
