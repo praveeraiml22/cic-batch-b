@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Upload, FileText, Download, Loader2, Plus } from "lucide-react";
+import { useRef, useState } from "react";
+import { Upload, FileText, Download, Loader2, Plus, Trash2, RefreshCcw, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -71,7 +71,7 @@ function AssignmentsPage() {
       ) : (
         <div className="space-y-4">
           {assignments.map((a) => (
-            <AssignmentRow key={a.id} a={a} />
+            <AssignmentRow key={a.id} a={a} onChanged={() => qc.invalidateQueries({ queryKey: ["assignments"] })} />
           ))}
         </div>
       )}
@@ -79,12 +79,59 @@ function AssignmentsPage() {
   );
 }
 
-function AssignmentRow({ a }: { a: any }) {
+function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
+  const reuploadRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState<"download" | "delete" | "reupload" | null>(null);
+  const { user } = useAuth();
+  const locked = a.status !== "submitted";
+
   async function download() {
     if (!a.file_url) return;
-    const url = await getSignedUrl(a.file_url);
-    window.open(url, "_blank");
+    setBusy("download");
+    try {
+      const url = await getSignedUrl(a.file_url);
+      window.open(url, "_blank");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not generate download link.");
+    } finally {
+      setBusy(null);
+    }
   }
+
+  async function remove() {
+    if (locked) return;
+    if (!confirm("Delete this submission? This cannot be undone.")) return;
+    setBusy("delete");
+    try {
+      const { error } = await supabase.from("assignments").delete().eq("id", a.id);
+      if (error) throw error;
+      toast.success("Assignment deleted successfully.");
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete assignment.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function reupload(file: File | null) {
+    if (!file || !user || locked) return;
+    setBusy("reupload");
+    try {
+      const { path } = await uploadToBucket(user.id, file, "assignments");
+      const { error } = await supabase.from("assignments").update({
+        file_url: path, file_name: file.name, file_size: file.size,
+      }).eq("id", a.id);
+      if (error) throw error;
+      toast.success("Assignment replaced successfully.");
+      onChanged();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not replace assignment.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
     <div className="rounded-2xl bg-card border border-border p-6 hover:border-gold/40 transition">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -109,11 +156,34 @@ function AssignmentRow({ a }: { a: any }) {
           <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_COLORS[a.status] || "bg-muted"}`}>
             {a.status.replace(/_/g, " ")}
           </span>
-          {a.file_url && (
-            <button onClick={download} className="inline-flex items-center gap-1.5 text-sm text-navy hover:text-gold transition">
-              <Download size={14} /> {formatBytes(a.file_size)}
-            </button>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+            {a.file_url && (
+              <button onClick={download} disabled={busy === "download"} className="inline-flex items-center gap-1.5 text-xs text-navy hover:text-gold transition disabled:opacity-50">
+                {busy === "download" ? <Loader2 className="animate-spin" size={12} /> : <Download size={12} />} {formatBytes(a.file_size)}
+              </button>
+            )}
+            {locked ? (
+              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Lock size={11} /> Reviewed (Locked)</span>
+            ) : (
+              <>
+                <button
+                  onClick={() => reuploadRef.current?.click()}
+                  disabled={busy === "reupload"}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-navy transition disabled:opacity-50"
+                >
+                  {busy === "reupload" ? <Loader2 className="animate-spin" size={11} /> : <RefreshCcw size={11} />} Re-upload
+                </button>
+                <input ref={reuploadRef} type="file" className="hidden" onChange={(e) => reupload(e.target.files?.[0] ?? null)} />
+                <button
+                  onClick={remove}
+                  disabled={busy === "delete"}
+                  className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700 transition disabled:opacity-50"
+                >
+                  {busy === "delete" ? <Loader2 className="animate-spin" size={11} /> : <Trash2 size={11} />} Delete
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -141,7 +211,7 @@ function SubmitForm({ onDone }: { onDone: () => void }) {
       if (error) throw error;
       return url;
     },
-    onSuccess: () => { toast.success("Assignment submitted"); onDone(); },
+    onSuccess: () => { toast.success("Assignment uploaded successfully."); onDone(); },
     onError: (e: Error) => toast.error(e.message),
   });
 
