@@ -14,7 +14,6 @@ export const Route = createFileRoute("/_authenticated/documents")({
 
 const CATEGORIES = [
   { value: "all", label: "All" },
-  { value: "assignments", label: "Assignments" },
   { value: "reports", label: "Reports" },
   { value: "research_papers", label: "Research" },
   { value: "project_files", label: "Projects" },
