@@ -115,12 +115,12 @@ function AssignmentsAdmin() {
               <option value="resubmission_required">resubmission_required</option>
             </select>
           </div>
-          <div className="mt-4 grid sm:grid-cols-[1fr_auto] gap-3">
+          <div className="mt-4 grid sm:grid-cols-[1fr_auto_auto] gap-3 items-start">
             <textarea defaultValue={a.feedback ?? ""} rows={2} placeholder="Feedback..." onBlur={(e) => e.target.value !== (a.feedback ?? "") && update(a.id, { feedback: e.target.value })}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
             <input defaultValue={a.grade ?? ""} placeholder="Grade" onBlur={(e) => e.target.value !== (a.grade ?? "") && update(a.id, { grade: e.target.value })}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm w-24" />
-          </div>
+            {a.file_url && <AdminDownloadButton path={a.file_url} name={a.file_name} />}
         </div>
       ))}
     </div>
