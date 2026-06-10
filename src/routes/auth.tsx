@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Loader2, Mail, Lock, User, Hash } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
@@ -377,46 +377,42 @@ type AuthFieldProps = {
   hint?: string;
 };
 
-const AuthField = ((): React.ForwardRefExoticComponent<AuthFieldProps & React.RefAttributes<HTMLInputElement>> => {
-  // forwardRef so we can refocus on validation errors
-  const { forwardRef } = require("react") as typeof import("react");
-  return forwardRef<HTMLInputElement, AuthFieldProps>(function AuthField(
-    { icon, label, value, onChange, type = "text", required, placeholder, error, hint },
-    ref,
-  ) {
-    const errId = error ? `${label.replace(/\s+/g, "-").toLowerCase()}-err` : undefined;
-    return (
-      <label className="block">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-          {label}
-        </span>
-        <div className="mt-1.5 relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
-          <input
-            ref={ref}
-            type={type}
-            required={required}
-            value={value}
-            placeholder={placeholder}
-            onChange={(e) => onChange(e.target.value)}
-            aria-invalid={!!error}
-            aria-describedby={errId}
-            className={`w-full rounded-lg border bg-background pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition ${
-              error
-                ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
-                : "border-border focus:border-gold focus:ring-gold/30"
-            }`}
-          />
-        </div>
-        {error ? (
-          <p id={errId} className="mt-1 text-xs text-rose-600">{error}</p>
-        ) : hint ? (
-          <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
-        ) : null}
-      </label>
-    );
-  });
-})();
+const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(function AuthField(
+  { icon, label, value, onChange, type = "text", required, placeholder, error, hint },
+  ref,
+) {
+  const errId = error ? `${label.replace(/\s+/g, "-").toLowerCase()}-err` : undefined;
+  return (
+    <label className="block">
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {label}
+      </span>
+      <div className="mt-1.5 relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
+        <input
+          ref={ref}
+          type={type}
+          required={required}
+          value={value}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          aria-invalid={!!error}
+          aria-describedby={errId}
+          className={`w-full rounded-lg border bg-background pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition ${
+            error
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
+              : "border-border focus:border-gold focus:ring-gold/30"
+          }`}
+        />
+      </div>
+      {error ? (
+        <p id={errId} className="mt-1 text-xs text-rose-600">{error}</p>
+      ) : hint ? (
+        <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+      ) : null}
+    </label>
+  );
+});
 
 function GoogleIcon() {
   return (
