@@ -1,12 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Loader2, Mail, Lock, User, Hash } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import { ensureMemberAccount } from "@/lib/account.functions";
+import { ensureMemberAccount, getCurrentAccount } from "@/lib/account.functions";
 import { toast } from "sonner";
+import { friendlyAuthError, logAuthError } from "@/lib/auth-log";
 import cicLogo from "@/assets/cic-logo.png.asset.json";
 
 export const Route = createFileRoute("/auth")({
@@ -19,9 +21,28 @@ export const Route = createFileRoute("/auth")({
   }),
 });
 
+const signInSchema = z.object({
+  email: z.string().trim().min(1, "Email is required").email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const signUpSchema = z.object({
+  fullName: z.string().trim().min(2, "Please enter your full name"),
+  studentId: z.string().trim().min(1, "Student ID is required"),
+  email: z.string().trim().min(1, "Email is required").email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  confirmPassword: z.string(),
+}).refine((v) => v.password === v.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type FieldErrors = Partial<Record<"email" | "password" | "confirmPassword" | "fullName" | "studentId", string>>;
+
 function AuthPage() {
   const navigate = useNavigate();
   const ensureAccount = useServerFn(ensureMemberAccount);
+  const fetchAccount = useServerFn(getCurrentAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -29,8 +50,19 @@ function AuthPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [studentId, setStudentId] = useState("");
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [announcement, setAnnouncement] = useState("");
+
+  const refs = {
+    fullName: useRef<HTMLInputElement>(null),
+    studentId: useRef<HTMLInputElement>(null),
+    email: useRef<HTMLInputElement>(null),
+    password: useRef<HTMLInputElement>(null),
+    confirmPassword: useRef<HTMLInputElement>(null),
+  };
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -38,12 +70,58 @@ function AuthPage() {
     });
   }, [navigate]);
 
+  function focusFirstError(errs: FieldErrors) {
+    const order: (keyof typeof refs)[] = ["fullName", "studentId", "email", "password", "confirmPassword"];
+    for (const key of order) {
+      if (errs[key]) {
+        refs[key].current?.focus();
+        return;
+      }
+    }
+  }
+
+  async function redirectByRole() {
+    try {
+      const acct = await fetchAccount({});
+      navigate({ to: acct.isAdmin ? "/admin" : "/dashboard" });
+    } catch {
+      navigate({ to: "/dashboard" });
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setErrors({});
     const normalizedEmail = email.trim().toLowerCase();
-    if (!normalizedEmail) return toast.error("Enter your email address");
-    if (password.length < 8) return toast.error("Password must be at least 8 characters");
-    if (mode === "signup" && (!fullName.trim() || !studentId.trim())) return toast.error("Enter your name and student ID");
+
+    if (mode === "signup") {
+      const parsed = signUpSchema.safeParse({ fullName, studentId, email: normalizedEmail, password, confirmPassword });
+      if (!parsed.success) {
+        const fieldErrs: FieldErrors = {};
+        for (const issue of parsed.error.issues) {
+          const k = issue.path[0] as keyof FieldErrors;
+          if (!fieldErrs[k]) fieldErrs[k] = issue.message;
+        }
+        setErrors(fieldErrs);
+        setAnnouncement(Object.values(fieldErrs).join(". "));
+        focusFirstError(fieldErrs);
+        return;
+      }
+    } else {
+      const parsed = signInSchema.safeParse({ email: normalizedEmail, password });
+      if (!parsed.success) {
+        const fieldErrs: FieldErrors = {};
+        for (const issue of parsed.error.issues) {
+          const k = issue.path[0] as keyof FieldErrors;
+          if (!fieldErrs[k]) fieldErrs[k] = issue.message;
+        }
+        setErrors(fieldErrs);
+        setAnnouncement(Object.values(fieldErrs).join(". "));
+        focusFirstError(fieldErrs);
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       if (mode === "signup") {
@@ -56,19 +134,29 @@ function AuthPage() {
           },
         });
         if (error) throw error;
-        if (data.session) await ensureAccount({});
-        toast.success(data.session ? "Account created. Redirecting…" : "Account created. Check your email to confirm it, then sign in.");
-        if (data.session) navigate({ to: "/dashboard" });
-        setMode("signin");
+        if (data.session) {
+          await ensureAccount({});
+          toast.success("Account created successfully.");
+          setAnnouncement("Account created successfully.");
+          await redirectByRole();
+        } else {
+          toast.success("Account created successfully. Please check your email to verify your account.");
+          setAnnouncement("Account created. Please verify your email.");
+          setMode("signin");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
         await ensureAccount({});
-        toast.success("Welcome back!");
-        navigate({ to: "/dashboard" });
+        toast.success("Signed in successfully.");
+        setAnnouncement("Signed in successfully.");
+        await redirectByRole();
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Authentication failed");
+      const msg = friendlyAuthError(mode === "signup" ? "signup" : "signin", err);
+      toast.error(msg);
+      setAnnouncement(msg);
+      void logAuthError(mode, normalizedEmail, err);
     } finally {
       setLoading(false);
     }
@@ -76,17 +164,53 @@ function AuthPage() {
 
   async function handleGoogle() {
     setOauthLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/dashboard`,
-    });
-    if (result.error) {
-      toast.error("Google sign-in failed");
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: `${window.location.origin}/dashboard`,
+      });
+      if (result.error) {
+        const msg = "Google sign-in failed. Please try again.";
+        toast.error(msg);
+        setAnnouncement(msg);
+        void logAuthError("oauth_google", "", result.error);
+        return;
+      }
+      if (result.redirected) return;
+      await ensureAccount({});
+      toast.success("Signed in successfully.");
+      await redirectByRole();
+    } finally {
       setOauthLoading(false);
+    }
+  }
+
+  async function handleForgot() {
+    const normalizedEmail = email.trim().toLowerCase();
+    const parsed = z.string().email().safeParse(normalizedEmail);
+    if (!parsed.success) {
+      const msg = "Enter a valid email above first to receive a reset link.";
+      toast.error(msg);
+      setAnnouncement(msg);
+      setErrors((prev) => ({ ...prev, email: "Please enter a valid email address" }));
+      refs.email.current?.focus();
       return;
     }
-    if (result.redirected) return;
-    await ensureAccount({});
-    navigate({ to: "/dashboard" });
+    setResetLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) throw error;
+      toast.success("Password reset link has been sent to your email.");
+      setAnnouncement("Password reset link has been sent to your email.");
+    } catch (err) {
+      const msg = friendlyAuthError("reset", err);
+      toast.error(msg);
+      setAnnouncement(msg);
+      void logAuthError("reset", normalizedEmail, err);
+    } finally {
+      setResetLoading(false);
+    }
   }
 
   return (
@@ -129,7 +253,7 @@ function AuthPage() {
           <button
             type="button"
             onClick={handleGoogle}
-            disabled={oauthLoading}
+            disabled={oauthLoading || loading}
             className="w-full inline-flex items-center justify-center gap-3 rounded-lg border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted transition disabled:opacity-50"
           >
             {oauthLoading ? <Loader2 className="animate-spin" size={18} /> : <GoogleIcon />}
@@ -142,42 +266,66 @@ function AuthPage() {
             <div className="flex-1 h-px bg-border" />
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* aria-live region for screen readers */}
+          <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             {mode === "signup" && (
               <>
                 <AuthField
+                  ref={refs.fullName}
                   icon={<User size={16} />}
                   label="Full Name"
                   value={fullName}
                   onChange={setFullName}
+                  error={errors.fullName}
                   required
                 />
                 <AuthField
+                  ref={refs.studentId}
                   icon={<Hash size={16} />}
                   label="Student ID"
                   value={studentId}
                   onChange={setStudentId}
                   placeholder="20231234"
+                  error={errors.studentId}
                   required
                 />
               </>
             )}
             <AuthField
+              ref={refs.email}
               icon={<Mail size={16} />}
               label="Email"
               type="email"
               value={email}
               onChange={setEmail}
+              error={errors.email}
               required
             />
             <AuthField
+              ref={refs.password}
               icon={<Lock size={16} />}
               label="Password"
               type="password"
               value={password}
               onChange={setPassword}
+              error={errors.password}
+              hint={mode === "signup" ? "Minimum 8 characters" : undefined}
               required
             />
+            {mode === "signup" && (
+              <AuthField
+                ref={refs.confirmPassword}
+                icon={<Lock size={16} />}
+                label="Confirm Password"
+                type="password"
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                error={errors.confirmPassword}
+                required
+              />
+            )}
 
             <button
               type="submit"
@@ -185,29 +333,16 @@ function AuthPage() {
               className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-navy px-4 py-3 text-sm font-semibold text-white hover:bg-navy-deep transition disabled:opacity-50"
             >
               {loading && <Loader2 className="animate-spin" size={16} />}
-              {mode === "signin" ? "Sign in" : "Create account"}
+              {loading
+                ? (mode === "signin" ? "Signing in..." : "Creating account...")
+                : (mode === "signin" ? "Sign in" : "Create account")}
             </button>
             {mode === "signin" && (
               <button
                 type="button"
-                onClick={async () => {
-                  const normalizedEmail = email.trim().toLowerCase();
-                  if (!normalizedEmail) return toast.error("Enter your email above first");
-                  setResetLoading(true);
-                  try {
-                    const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
-                      redirectTo: `${window.location.origin}/reset-password`,
-                    });
-                    if (error) throw error;
-                    toast.success("Password reset link sent to your email");
-                  } catch (err) {
-                    toast.error(err instanceof Error ? err.message : "Could not send reset email");
-                  } finally {
-                    setResetLoading(false);
-                  }
-                }}
-                disabled={resetLoading}
-                className="w-full text-xs text-muted-foreground hover:text-navy transition"
+                onClick={handleForgot}
+                disabled={resetLoading || loading}
+                className="w-full text-xs text-muted-foreground hover:text-navy transition disabled:opacity-50"
               >
                 {resetLoading ? "Sending reset link…" : "Forgot your password?"}
               </button>
@@ -218,7 +353,7 @@ function AuthPage() {
             {mode === "signin" ? "New to CIC? " : "Already a member? "}
             <button
               type="button"
-              onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+              onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setErrors({}); }}
               className="font-semibold text-navy hover:text-gold transition"
             >
               {mode === "signin" ? "Create an account" : "Sign in"}
@@ -230,15 +365,7 @@ function AuthPage() {
   );
 }
 
-function AuthField({
-  icon,
-  label,
-  value,
-  onChange,
-  type = "text",
-  required,
-  placeholder,
-}: {
+type AuthFieldProps = {
   icon: React.ReactNode;
   label: string;
   value: string;
@@ -246,26 +373,50 @@ function AuthField({
   type?: string;
   required?: boolean;
   placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-      <div className="mt-1.5 relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
-        <input
-          type={type}
-          required={required}
-          value={value}
-          placeholder={placeholder}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-lg border border-border bg-background pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 transition"
-        />
-      </div>
-    </label>
-  );
-}
+  error?: string;
+  hint?: string;
+};
+
+const AuthField = ((): React.ForwardRefExoticComponent<AuthFieldProps & React.RefAttributes<HTMLInputElement>> => {
+  // forwardRef so we can refocus on validation errors
+  const { forwardRef } = require("react") as typeof import("react");
+  return forwardRef<HTMLInputElement, AuthFieldProps>(function AuthField(
+    { icon, label, value, onChange, type = "text", required, placeholder, error, hint },
+    ref,
+  ) {
+    const errId = error ? `${label.replace(/\s+/g, "-").toLowerCase()}-err` : undefined;
+    return (
+      <label className="block">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </span>
+        <div className="mt-1.5 relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">{icon}</span>
+          <input
+            ref={ref}
+            type={type}
+            required={required}
+            value={value}
+            placeholder={placeholder}
+            onChange={(e) => onChange(e.target.value)}
+            aria-invalid={!!error}
+            aria-describedby={errId}
+            className={`w-full rounded-lg border bg-background pl-10 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 transition ${
+              error
+                ? "border-rose-400 focus:border-rose-500 focus:ring-rose-200"
+                : "border-border focus:border-gold focus:ring-gold/30"
+            }`}
+          />
+        </div>
+        {error ? (
+          <p id={errId} className="mt-1 text-xs text-rose-600">{error}</p>
+        ) : hint ? (
+          <p className="mt-1 text-xs text-muted-foreground">{hint}</p>
+        ) : null}
+      </label>
+    );
+  });
+})();
 
 function GoogleIcon() {
   return (
