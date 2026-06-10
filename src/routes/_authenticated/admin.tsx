@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, CalendarDays, UserCog, Bell } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, CalendarDays, UserCog, Bell, Download, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setMemberRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -37,14 +37,14 @@ function AdminPage() {
       <Tabs defaultValue="stats">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
           <TabsTrigger value="announcements">Notices</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
-        <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
+        <TabsContent value="members" className="mt-6"><MembersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
         <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
