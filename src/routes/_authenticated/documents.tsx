@@ -34,6 +34,7 @@ function DocumentsPage() {
       const { data, error } = await supabase
         .from("documents")
         .select("*")
+        .neq("category", "assignments")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
