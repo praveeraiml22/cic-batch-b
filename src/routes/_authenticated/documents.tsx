@@ -14,7 +14,6 @@ export const Route = createFileRoute("/_authenticated/documents")({
 
 const CATEGORIES = [
   { value: "all", label: "All" },
-  { value: "assignments", label: "Assignments" },
   { value: "reports", label: "Reports" },
   { value: "research_papers", label: "Research" },
   { value: "project_files", label: "Projects" },
@@ -35,6 +34,7 @@ function DocumentsPage() {
       const { data, error } = await supabase
         .from("documents")
         .select("*")
+        .neq("category", "assignments")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];

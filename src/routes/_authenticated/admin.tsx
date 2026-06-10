@@ -1,15 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, CalendarDays, UserCog, Bell } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, CalendarDays, UserCog, Bell, Download, Search } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setMemberRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
@@ -37,14 +37,14 @@ function AdminPage() {
       <Tabs defaultValue="stats">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
           <TabsTrigger value="announcements">Notices</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
-        <TabsContent value="users" className="mt-6"><UsersAdmin /></TabsContent>
+        <TabsContent value="members" className="mt-6"><MembersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
         <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
@@ -115,11 +115,12 @@ function AssignmentsAdmin() {
               <option value="resubmission_required">resubmission_required</option>
             </select>
           </div>
-          <div className="mt-4 grid sm:grid-cols-[1fr_auto] gap-3">
+          <div className="mt-4 grid sm:grid-cols-[1fr_auto_auto] gap-3 items-start">
             <textarea defaultValue={a.feedback ?? ""} rows={2} placeholder="Feedback..." onBlur={(e) => e.target.value !== (a.feedback ?? "") && update(a.id, { feedback: e.target.value })}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
             <input defaultValue={a.grade ?? ""} placeholder="Grade" onBlur={(e) => e.target.value !== (a.grade ?? "") && update(a.id, { grade: e.target.value })}
               className="rounded-md border border-border bg-background px-3 py-2 text-sm w-24" />
+            {a.file_url && <AdminDownloadButton path={a.file_url} name={a.file_name} />}
           </div>
         </div>
       ))}
