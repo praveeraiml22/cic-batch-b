@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   FileText,
@@ -11,12 +12,23 @@ import {
   Shield,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin, useProfile } from "@/hooks/use-profile";
 import { ensureMemberAccount } from "@/lib/account.functions";
-import { Toaster } from "sonner";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import cicLogo from "@/assets/cic-logo.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated")({
