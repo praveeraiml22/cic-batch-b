@@ -63,7 +63,7 @@ function AdminPage() {
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
-        <TabsContent value="members" className="mt-6"><MembersAdmin /></TabsContent>
+        <TabsContent value="members" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
         <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
