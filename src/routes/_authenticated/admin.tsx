@@ -38,7 +38,7 @@ function AdminDownloadButton({ path, name }: { path: string; name?: string | nul
           }
         }
       }
-      const blob = new Blob(chunks);
+      const blob = new Blob(chunks as BlobPart[]);
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
