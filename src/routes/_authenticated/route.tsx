@@ -139,6 +139,25 @@ function AuthedLayout() {
       <main className="flex-1 min-w-0 lg:ml-0 pt-14 lg:pt-0">
         <Outlet />
       </main>
+
+      <AlertDialog open={confirmOpen} onOpenChange={(o) => { if (!signingOut) setConfirmOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out</AlertDialogTitle>
+            <AlertDialogDescription>Would you like to sign out?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={signingOut}
+              onClick={(e) => { e.preventDefault(); handleLogout(); }}
+              className="inline-flex items-center gap-2"
+            >
+              {signingOut ? (<><Loader2 size={14} className="animate-spin" /> Signing out…</>) : "Sign Out"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
