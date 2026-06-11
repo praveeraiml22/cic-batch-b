@@ -9,7 +9,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats, listAdminUsers, setMemberRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, getAdminFileUrl } from "@/lib/admin.functions";
+
+function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
+  const getUrl = useServerFn(getAdminFileUrl);
+  async function go() {
+    try {
+      const { url } = await getUrl({ data: { path } });
+      const a = document.createElement("a");
+      a.href = url; a.download = name ?? ""; a.target = "_blank"; a.rel = "noopener";
+      document.body.appendChild(a); a.click(); a.remove();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    }
+  }
+  return (
+    <button onClick={go} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted transition">
+      <Download size={13} /> Download
+    </button>
+  );
+}
 
 export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
