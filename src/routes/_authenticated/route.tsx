@@ -129,7 +129,7 @@ function AuthedLayout() {
             isAdmin={!!isAdmin}
             adminLoading={adminLoading}
             pathname={pathname}
-            onLogout={handleLogout}
+            onLogout={() => setConfirmOpen(true)}
             name={profile?.full_name || user?.email || ""}
             studentId={profile?.student_id}
           />
