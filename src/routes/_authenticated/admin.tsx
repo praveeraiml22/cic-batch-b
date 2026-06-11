@@ -13,19 +13,51 @@ import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, get
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
   const getUrl = useServerFn(getAdminFileUrl);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   async function go() {
+    if (loading) return;
+    setLoading(true);
+    setProgress(0);
     try {
       const { url } = await getUrl({ data: { path } });
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Download failed (${res.status})`);
+      const total = Number(res.headers.get("content-length") ?? 0);
+      const reader = res.body?.getReader();
+      const chunks: Uint8Array[] = [];
+      let received = 0;
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          if (value) {
+            chunks.push(value);
+            received += value.length;
+            if (total) setProgress(Math.round((received / total) * 100));
+          }
+        }
+      }
+      const blob = new Blob(chunks as BlobPart[]);
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
-      a.href = url; a.download = name ?? ""; a.target = "_blank"; a.rel = "noopener";
+      a.href = blobUrl;
+      a.download = name || path.split("/").pop() || "download";
       document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+      toast.success("Download started");
     } catch (e) {
+      console.error("[admin:download]", e);
       toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setLoading(false);
+      setProgress(0);
     }
   }
   return (
-    <button onClick={go} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted transition">
-      <Download size={13} /> Download
+    <button onClick={go} disabled={loading} className="inline-flex items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-xs hover:bg-muted transition disabled:opacity-60">
+      {loading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+      {loading ? (progress ? `${progress}%` : "Downloading…") : "Download"}
     </button>
   );
 }

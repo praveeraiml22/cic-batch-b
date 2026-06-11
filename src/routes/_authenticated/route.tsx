@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   FileText,
@@ -11,12 +12,23 @@ import {
   Shield,
   Menu,
   X,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin, useProfile } from "@/hooks/use-profile";
 import { ensureMemberAccount } from "@/lib/account.functions";
-import { Toaster } from "sonner";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import cicLogo from "@/assets/cic-logo.png.asset.json";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -45,8 +57,11 @@ function AuthedLayout() {
   const { data: profile } = useProfile(user?.id);
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -58,14 +73,27 @@ function AuthedLayout() {
   }, [ensureAccount, user?.id]);
 
   async function handleLogout() {
-    await supabase.auth.stopAutoRefresh();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await supabase.auth.stopAutoRefresh();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      queryClient.clear();
+      toast.success("Signed out successfully.");
+      setConfirmOpen(false);
+      navigate({ to: "/", replace: true });
+    } catch (e) {
+      console.error("[auth:signout]", e);
+      toast.error("Unable to sign out. Please try again.");
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
-      <Toaster richColors position="top-right" />
+
 
       {/* Sidebar — desktop */}
       <aside className="hidden lg:flex w-64 flex-col bg-navy-deep text-white sticky top-0 h-screen">
@@ -73,7 +101,7 @@ function AuthedLayout() {
           isAdmin={!!isAdmin}
           adminLoading={adminLoading}
           pathname={pathname}
-          onLogout={handleLogout}
+          onLogout={() => setConfirmOpen(true)}
           name={profile?.full_name || user?.email || ""}
           studentId={profile?.student_id}
         />
@@ -101,7 +129,7 @@ function AuthedLayout() {
             isAdmin={!!isAdmin}
             adminLoading={adminLoading}
             pathname={pathname}
-            onLogout={handleLogout}
+            onLogout={() => setConfirmOpen(true)}
             name={profile?.full_name || user?.email || ""}
             studentId={profile?.student_id}
           />
@@ -111,6 +139,25 @@ function AuthedLayout() {
       <main className="flex-1 min-w-0 lg:ml-0 pt-14 lg:pt-0">
         <Outlet />
       </main>
+
+      <AlertDialog open={confirmOpen} onOpenChange={(o) => { if (!signingOut) setConfirmOpen(o); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Sign Out</AlertDialogTitle>
+            <AlertDialogDescription>Would you like to sign out?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={signingOut}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={signingOut}
+              onClick={(e) => { e.preventDefault(); handleLogout(); }}
+              className="inline-flex items-center gap-2"
+            >
+              {signingOut ? (<><Loader2 size={14} className="animate-spin" /> Signing out…</>) : "Sign Out"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
