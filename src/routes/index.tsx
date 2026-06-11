@@ -369,16 +369,21 @@ function About() {
 
 /* ---------- COORDINATORS ---------- */
 function Coordinators() {
-  const faculty = [
-    { name: "Dr. A. K. Sharma", role: "Faculty Coordinator", dept: "Professor, Civil Engineering" },
-    { name: "Dr. R. Mehta", role: "Faculty Co-Coordinator", dept: "Associate Professor, Civil Engineering" },
-  ];
-  const students = [
-    { name: "Aarav Patel", role: "President", dept: "B.Tech Civil, Final Year" },
-    { name: "Ishita Rao", role: "Vice President", dept: "B.Tech Civil, Third Year" },
-    { name: "Karan Singh", role: "Technical Head", dept: "B.Tech Civil, Final Year" },
-    { name: "Priya Verma", role: "Events Head", dept: "B.Tech Civil, Third Year" },
-  ];
+  const [members, setMembers] = useState<Array<{ id: string; type: string; name: string; designation: string; photo_url: string | null }>>([]);
+  useEffect(() => {
+    let cancelled = false;
+    import("@/integrations/supabase/client").then(({ supabase }) =>
+      supabase
+        .from("coordinators")
+        .select("id,type,name,designation,photo_url")
+        .order("sort_order", { ascending: true })
+        .then(({ data }) => { if (!cancelled && data) setMembers(data as any); }),
+    );
+    return () => { cancelled = true; };
+  }, []);
+
+  const faculty = members.filter((m) => m.type === "faculty");
+  const students = members.filter((m) => m.type === "student");
 
   return (
     <section id="team" className="py-24 lg:py-32 bg-muted/40 border-y border-border">
@@ -389,27 +394,35 @@ function Coordinators() {
           subtitle="Guided by distinguished faculty and led by a passionate student council."
         />
 
-        <div className="mt-16">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">
-            Faculty Coordinators
-          </h3>
-          <div className="grid sm:grid-cols-2 gap-6">
-            {faculty.map((p) => (
-              <PersonCard key={p.name} {...p} accent />
-            ))}
+        {faculty.length > 0 && (
+          <div className="mt-16">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">
+              Faculty Coordinators
+            </h3>
+            <div className="grid sm:grid-cols-2 gap-6">
+              {faculty.map((p) => (
+                <PersonCard key={p.id} name={p.name} role={p.designation} dept="" photo={p.photo_url} accent />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
-        <div className="mt-16">
-          <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">
-            Student Coordinators
-          </h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {students.map((p) => (
-              <PersonCard key={p.name} {...p} />
-            ))}
+        {students.length > 0 && (
+          <div className="mt-16">
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-navy mb-6">
+              Student Coordinators
+            </h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {students.map((p) => (
+                <PersonCard key={p.id} name={p.name} role={p.designation} dept="" photo={p.photo_url} />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
+
+        {members.length === 0 && (
+          <p className="mt-16 text-center text-sm text-muted-foreground">Team members will appear here once added from the Admin Panel.</p>
+        )}
       </div>
     </section>
   );
