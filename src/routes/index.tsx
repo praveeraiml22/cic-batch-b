@@ -433,11 +433,13 @@ function PersonCard({
   role,
   dept,
   accent,
+  photo,
 }: {
   name: string;
   role: string;
   dept: string;
   accent?: boolean;
+  photo?: string | null;
 }) {
   const initials = name
     .split(" ")
@@ -452,15 +454,19 @@ function PersonCard({
       transition={{ duration: 0.5 }}
       className="group rounded-2xl bg-card border border-border p-6 flex items-center gap-5 hover:border-gold/40 hover:shadow-elegant transition-all"
     >
-      <div
-        className={`relative h-20 w-20 rounded-full grid place-items-center font-display text-2xl font-semibold flex-shrink-0 ${
-          accent
-            ? "bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] text-navy-deep ring-2 ring-gold/40"
-            : "bg-navy text-white"
-        }`}
-      >
-        {initials}
-      </div>
+      {photo ? (
+        <img src={photo} alt={name} className="h-20 w-20 rounded-full object-cover flex-shrink-0 ring-2 ring-gold/40" />
+      ) : (
+        <div
+          className={`relative h-20 w-20 rounded-full grid place-items-center font-display text-2xl font-semibold flex-shrink-0 ${
+            accent
+              ? "bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] text-navy-deep ring-2 ring-gold/40"
+              : "bg-navy text-white"
+          }`}
+        >
+          {initials}
+        </div>
+      )}
       <div className="min-w-0">
         <p className="font-display text-lg font-semibold text-foreground truncate">{name}</p>
         <p className="text-sm font-medium text-navy mt-0.5">{role}</p>
