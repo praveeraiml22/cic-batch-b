@@ -57,8 +57,11 @@ function AuthedLayout() {
   const { data: profile } = useProfile(user?.id);
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -70,14 +73,27 @@ function AuthedLayout() {
   }, [ensureAccount, user?.id]);
 
   async function handleLogout() {
-    await supabase.auth.stopAutoRefresh();
-    await supabase.auth.signOut();
-    navigate({ to: "/auth", replace: true });
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await supabase.auth.stopAutoRefresh();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      queryClient.clear();
+      toast.success("Signed out successfully.");
+      setConfirmOpen(false);
+      navigate({ to: "/", replace: true });
+    } catch (e) {
+      console.error("[auth:signout]", e);
+      toast.error("Unable to sign out. Please try again.");
+    } finally {
+      setSigningOut(false);
+    }
   }
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
-      <Toaster richColors position="top-right" />
+
 
       {/* Sidebar — desktop */}
       <aside className="hidden lg:flex w-64 flex-col bg-navy-deep text-white sticky top-0 h-screen">
