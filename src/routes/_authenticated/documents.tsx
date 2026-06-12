@@ -107,9 +107,19 @@ function DocumentsPage() {
 }
 
 function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChanged: () => void }) {
+  const [busy, setBusy] = useState(false);
   async function download() {
-    const url = await getSignedUrl(d.file_url);
-    window.open(url, "_blank");
+    if (busy) return;
+    setBusy(true);
+    try {
+      const url = await getSignedUrl(d.file_url);
+      await downloadFromUrl(url, d.file_name || d.title || "document");
+      toast.success("Download started");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Download failed");
+    } finally {
+      setBusy(false);
+    }
   }
   async function remove() {
     if (!confirm("Delete this document?")) return;
@@ -126,8 +136,8 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
       <p className="text-xs text-muted-foreground mt-1 capitalize">{d.category.replace(/_/g, " ")} · {formatBytes(d.file_size)}</p>
       {d.description && <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{d.description}</p>}
       <div className="mt-5 flex items-center gap-2">
-        <button onClick={download} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-navy text-white py-2 text-xs font-semibold hover:bg-navy-deep transition">
-          <Download size={13} /> Download
+        <button onClick={download} disabled={busy} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-navy text-white py-2 text-xs font-semibold hover:bg-navy-deep transition disabled:opacity-60">
+          {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} {busy ? "Downloading…" : "Download"}
         </button>
         {ownerId === d.uploaded_by && (
           <button onClick={remove} className="px-3 py-2 rounded-md border border-border text-xs text-muted-foreground hover:text-rose-600 transition">Delete</button>
