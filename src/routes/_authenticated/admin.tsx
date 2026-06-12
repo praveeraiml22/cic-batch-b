@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, CalendarDays, UserCog, Bell, Download, Search } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, getAdminFileUrl } from "@/lib/admin.functions";
+import { uploadToBucket } from "@/lib/upload";
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
   const getUrl = useServerFn(getAdminFileUrl);
@@ -91,14 +92,12 @@ function AdminPage() {
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
           <TabsTrigger value="announcements">Notices</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
         <TabsContent value="members" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
-        <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
         <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
       </Tabs>
     </div>
@@ -114,7 +113,6 @@ function StatsAdmin() {
     { label: "Members", value: data?.users ?? 0, icon: Users },
     { label: "Admins", value: data?.admins ?? 0, icon: Shield },
     { label: "Assignments", value: data?.assignments ?? 0, icon: FileText },
-    { label: "Events", value: data?.events ?? 0, icon: CalendarDays },
     { label: "Notices", value: data?.announcements ?? 0, icon: Megaphone },
     { label: "Team Members", value: data?.coordinators ?? 0, icon: UserCog },
     { label: "Notifications Sent", value: data?.notifications ?? 0, icon: Bell },
@@ -140,8 +138,18 @@ function AssignmentsAdmin() {
   const { data } = useQuery({
     queryKey: ["admin-assignments"],
     queryFn: async () => {
-      const { data } = await supabase.from("assignments").select("*, profiles:submitted_by(full_name, student_id)").order("created_at", { ascending: false });
-      return data ?? [];
+      const { data: assignments, error } = await supabase
+        .from("assignments")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const ids = Array.from(new Set((assignments ?? []).map((a) => a.submitted_by).filter(Boolean)));
+      let profiles: any[] = [];
+      if (ids.length) {
+        const { data: ps } = await supabase.from("profiles").select("id, full_name, student_id").in("id", ids);
+        profiles = ps ?? [];
+      }
+      return (assignments ?? []).map((a) => ({ ...a, profiles: profiles.find((p) => p.id === a.submitted_by) }));
     },
   });
   async function update(id: string, patch: any) {
@@ -151,6 +159,7 @@ function AssignmentsAdmin() {
   }
   return (
     <div className="space-y-3">
+      {!data?.length && <p className="text-sm text-muted-foreground text-center py-8">No assignments submitted yet.</p>}
       {data?.map((a: any) => (
         <div key={a.id} className="rounded-xl bg-card border border-border p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -176,32 +185,6 @@ function AssignmentsAdmin() {
         </div>
       ))}
     </div>
-  );
-}
-
-/* -------- Events -------- */
-function EventsAdmin() {
-  const qc = useQueryClient();
-  const { user } = useAuth();
-  const { data } = useQuery({ queryKey: ["admin-events"], queryFn: async () => (await supabase.from("events").select("*").order("created_at", { ascending: false })).data ?? [] });
-  const [f, setF] = useState({ title: "", description: "", event_date: "", tag: "event" });
-  async function add(e: React.FormEvent) {
-    e.preventDefault();
-    const { error } = await supabase.from("events").insert({ ...f, created_by: user!.id, event_date: f.event_date || null });
-    if (error) toast.error(error.message);
-    else { toast.success("Added"); setF({ title: "", description: "", event_date: "", tag: "event" }); qc.invalidateQueries({ queryKey: ["admin-events"] }); }
-  }
-  return (
-    <>
-      <form onSubmit={add} className="rounded-xl bg-card border border-border p-5 mb-5 grid sm:grid-cols-4 gap-3">
-        <input required placeholder="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm sm:col-span-2" />
-        <input type="date" value={f.event_date} onChange={(e) => setF({ ...f, event_date: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <input placeholder="Tag" value={f.tag} onChange={(e) => setF({ ...f, tag: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <textarea placeholder="Description" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} className="sm:col-span-4 rounded-md border border-border bg-background px-3 py-2 text-sm" rows={2} />
-        <button className="sm:col-span-4 inline-flex items-center justify-center gap-2 rounded-md bg-navy text-white py-2 text-sm font-semibold"><Plus size={14} /> Add event</button>
-      </form>
-      <List items={data} table="events" qkey={["admin-events"]} render={(e) => (<><p className="font-semibold">{e.title}</p><p className="text-xs text-muted-foreground">{e.tag} · {e.event_date ?? "—"}</p></>)} />
-    </>
   );
 }
 
@@ -238,6 +221,50 @@ function AnnouncementsAdmin() {
   );
 }
 
+/* -------- Photo upload helper -------- */
+function PhotoUpload({ value, onChange }: { value: string; onChange: (url: string) => void }) {
+  const { user } = useAuth();
+  const [busy, setBusy] = useState(false);
+  async function pick(file: File | null) {
+    if (!file || !user) return;
+    if (!/^image\/(png|jpe?g)$/i.test(file.type)) {
+      toast.error("Please choose a JPG or PNG image");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image must be 5 MB or smaller");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { url } = await uploadToBucket(user.id, file, "coordinators");
+      onChange(url);
+      toast.success("Photo uploaded");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <div className="flex items-center gap-3">
+      {value ? (
+        <img src={value} alt="" className="h-12 w-12 rounded-full object-cover ring-2 ring-border" />
+      ) : (
+        <div className="h-12 w-12 rounded-full bg-muted grid place-items-center text-muted-foreground"><ImageIcon size={16} /></div>
+      )}
+      <label className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs cursor-pointer hover:bg-muted">
+        {busy ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
+        {busy ? "Uploading…" : value ? "Change photo" : "Upload JPG/PNG"}
+        <input type="file" accept="image/png,image/jpeg" className="hidden" onChange={(e) => pick(e.target.files?.[0] ?? null)} />
+      </label>
+      {value && !busy && (
+        <button type="button" onClick={() => onChange("")} className="text-xs text-muted-foreground hover:text-rose-600">Remove</button>
+      )}
+    </div>
+  );
+}
+
 /* -------- Coordinators -------- */
 function CoordinatorsAdmin() {
   const qc = useQueryClient();
@@ -251,14 +278,17 @@ function CoordinatorsAdmin() {
   }
   return (
     <>
-      <form onSubmit={add} className="rounded-xl bg-card border border-border p-5 mb-5 grid sm:grid-cols-4 gap-3">
+      <form onSubmit={add} className="rounded-xl bg-card border border-border p-5 mb-5 grid sm:grid-cols-3 gap-3">
         <select value={f.type} onChange={(e) => setF({ ...f, type: e.target.value as any })} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
           <option value="faculty">Faculty</option><option value="student">Student</option>
         </select>
         <input required placeholder="Name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
         <input required placeholder="Designation" value={f.designation} onChange={(e) => setF({ ...f, designation: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <input placeholder="Photo URL (optional)" value={f.photo_url} onChange={(e) => setF({ ...f, photo_url: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <button className="sm:col-span-4 inline-flex items-center justify-center gap-2 rounded-md bg-navy text-white py-2 text-sm font-semibold"><Plus size={14} /> Add</button>
+        <div className="sm:col-span-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Photo (JPG or PNG)</p>
+          <PhotoUpload value={f.photo_url} onChange={(url) => setF({ ...f, photo_url: url })} />
+        </div>
+        <button className="sm:col-span-3 inline-flex items-center justify-center gap-2 rounded-md bg-navy text-white py-2 text-sm font-semibold"><Plus size={14} /> Add</button>
       </form>
       <div className="space-y-2">
         {data?.map((c: any) => (
@@ -286,14 +316,17 @@ function CoordinatorRow({ c }: { c: any }) {
   }
   if (editing) {
     return (
-      <div className="rounded-xl bg-card border border-border p-4 grid sm:grid-cols-4 gap-2">
+      <div className="rounded-xl bg-card border border-border p-4 grid sm:grid-cols-3 gap-2">
         <select value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
           <option value="faculty">Faculty</option><option value="student">Student</option>
         </select>
         <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
         <input value={draft.designation} onChange={(e) => setDraft({ ...draft, designation: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <input value={draft.photo_url} onChange={(e) => setDraft({ ...draft, photo_url: e.target.value })} placeholder="Photo URL" className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <div className="sm:col-span-4 flex gap-2 justify-end">
+        <div className="sm:col-span-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Photo (JPG or PNG)</p>
+          <PhotoUpload value={draft.photo_url} onChange={(url) => setDraft({ ...draft, photo_url: url })} />
+        </div>
+        <div className="sm:col-span-3 flex gap-2 justify-end">
           <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs border border-border"><X size={13} /> Cancel</button>
           <button onClick={save} className="inline-flex items-center gap-1 rounded-md bg-navy text-white px-3 py-1.5 text-xs font-semibold"><Check size={13} /> Save</button>
         </div>

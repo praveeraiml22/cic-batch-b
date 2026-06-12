@@ -30,6 +30,21 @@ export async function getSignedUrl(path: string): Promise<string> {
   return data?.signedUrl ?? path;
 }
 
+/** Force-download a file from a URL via a Blob + temporary anchor click. */
+export async function downloadFromUrl(url: string, filename: string) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Download failed (${res.status})`);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+}
+
 export function formatBytes(n?: number | null) {
   if (!n) return "—";
   const units = ["B", "KB", "MB", "GB"];
