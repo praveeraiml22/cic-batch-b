@@ -316,14 +316,17 @@ function CoordinatorRow({ c }: { c: any }) {
   }
   if (editing) {
     return (
-      <div className="rounded-xl bg-card border border-border p-4 grid sm:grid-cols-4 gap-2">
+      <div className="rounded-xl bg-card border border-border p-4 grid sm:grid-cols-3 gap-2">
         <select value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm">
           <option value="faculty">Faculty</option><option value="student">Student</option>
         </select>
         <input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
         <input value={draft.designation} onChange={(e) => setDraft({ ...draft, designation: e.target.value })} className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <input value={draft.photo_url} onChange={(e) => setDraft({ ...draft, photo_url: e.target.value })} placeholder="Photo URL" className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <div className="sm:col-span-4 flex gap-2 justify-end">
+        <div className="sm:col-span-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Photo (JPG or PNG)</p>
+          <PhotoUpload value={draft.photo_url} onChange={(url) => setDraft({ ...draft, photo_url: url })} />
+        </div>
+        <div className="sm:col-span-3 flex gap-2 justify-end">
           <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs border border-border"><X size={13} /> Cancel</button>
           <button onClick={save} className="inline-flex items-center gap-1 rounded-md bg-navy text-white px-3 py-1.5 text-xs font-semibold"><Check size={13} /> Save</button>
         </div>
