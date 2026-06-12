@@ -5,7 +5,7 @@ import { Upload, FolderOpen, Download, Loader2, Plus, Search } from "lucide-reac
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { uploadToBucket, getSignedUrl, formatBytes } from "@/lib/upload";
+import { uploadToBucket, getSignedUrl, formatBytes, downloadFromUrl } from "@/lib/upload";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/documents")({
