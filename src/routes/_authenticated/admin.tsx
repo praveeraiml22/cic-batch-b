@@ -115,7 +115,6 @@ function StatsAdmin() {
     { label: "Members", value: data?.users ?? 0, icon: Users },
     { label: "Admins", value: data?.admins ?? 0, icon: Shield },
     { label: "Assignments", value: data?.assignments ?? 0, icon: FileText },
-    { label: "Events", value: data?.events ?? 0, icon: CalendarDays },
     { label: "Notices", value: data?.announcements ?? 0, icon: Megaphone },
     { label: "Team Members", value: data?.coordinators ?? 0, icon: UserCog },
     { label: "Notifications Sent", value: data?.notifications ?? 0, icon: Bell },
