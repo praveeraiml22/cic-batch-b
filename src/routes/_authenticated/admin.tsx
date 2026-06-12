@@ -92,14 +92,12 @@ function AdminPage() {
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
           <TabsTrigger value="announcements">Notices</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
         <TabsContent value="members" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
-        <TabsContent value="events" className="mt-6"><EventsAdmin /></TabsContent>
         <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
       </Tabs>
     </div>
