@@ -89,12 +89,14 @@ function AdminPage() {
       <Tabs defaultValue="stats">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
+          <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
           <TabsTrigger value="announcements">Notices</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
+        <TabsContent value="pending" className="mt-6"><PendingApprovalsAdmin /></TabsContent>
         <TabsContent value="members" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
