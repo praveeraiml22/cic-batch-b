@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, getAdminFileUrl } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
 import { uploadToBucket } from "@/lib/upload";
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
