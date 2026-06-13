@@ -255,3 +255,44 @@ function SidebarContent({
     </div>
   );
 }
+
+function AccountStatusGate({ status, onSignOut }: { status: string; onSignOut: () => void }) {
+  const messages: Record<string, { title: string; body: string; tone: string }> = {
+    pending: {
+      title: "Awaiting Administrator Approval",
+      body: "Your account has been created successfully and is awaiting administrator approval. You will be notified once your account is activated.",
+      tone: "bg-amber-50 text-amber-900 border-amber-200",
+    },
+    rejected: {
+      title: "Account Request Rejected",
+      body: "Your account request has been rejected by an administrator. Please contact the CIC team if you believe this is a mistake.",
+      tone: "bg-rose-50 text-rose-900 border-rose-200",
+    },
+    suspended: {
+      title: "Account Suspended",
+      body: "Your account is currently suspended. Please contact an administrator to restore access.",
+      tone: "bg-rose-50 text-rose-900 border-rose-200",
+    },
+    inactive: {
+      title: "Account Inactive",
+      body: "Your account is currently inactive. Please contact an administrator to reactivate it.",
+      tone: "bg-muted text-foreground border-border",
+    },
+  };
+  const m = messages[status] ?? messages.pending;
+  return (
+    <div className="min-h-[80vh] grid place-items-center p-6">
+      <div className={`max-w-lg w-full rounded-2xl border p-8 text-center ${m.tone}`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">Account status: {status}</p>
+        <h1 className="font-display text-2xl font-semibold mt-3">{m.title}</h1>
+        <p className="text-sm mt-3 leading-relaxed">{m.body}</p>
+        <button
+          onClick={onSignOut}
+          className="mt-6 inline-flex items-center gap-2 rounded-md bg-navy-deep text-white px-4 py-2 text-sm font-semibold hover:opacity-90"
+        >
+          <LogOut size={14} /> Sign out
+        </button>
+      </div>
+    </div>
+  );
+}
