@@ -157,12 +157,12 @@ export const setMemberStatus = createServerFn({ method: "POST" })
     if (data.userId === userId && data.status !== "active") {
       throw new Error("You cannot change your own status");
     }
-    const patch: Record<string, any> = { status: data.status };
+    const patch: { status: string; approved_by?: string; approved_at?: string } = { status: data.status };
     if (data.status === "active") {
       patch.approved_by = userId;
       patch.approved_at = new Date().toISOString();
     }
-    const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", data.userId);
+    const { error } = await supabaseAdmin.from("profiles").update(patch as any).eq("id", data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
