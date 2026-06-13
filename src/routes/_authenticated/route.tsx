@@ -137,7 +137,12 @@ function AuthedLayout() {
       )}
 
       <main className="flex-1 min-w-0 lg:ml-0 pt-14 lg:pt-0">
-        <Outlet />
+        {(() => {
+          const status = (profile as any)?.status ?? "active";
+          const allowed = isAdmin || status === "active";
+          if (!profile || allowed) return <Outlet />;
+          return <AccountStatusGate status={status} onSignOut={() => setConfirmOpen(true)} />;
+        })()}
       </main>
 
       <AlertDialog open={confirmOpen} onOpenChange={(o) => { if (!signingOut) setConfirmOpen(o); }}>
