@@ -189,32 +189,106 @@ function AssignmentsAdmin() {
 }
 
 /* -------- Announcements -------- */
+type Audience = "public" | "all" | "selected";
 function AnnouncementsAdmin() {
   const qc = useQueryClient();
   const { user } = useAuth();
   const { data } = useQuery({ queryKey: ["admin-announcements"], queryFn: async () => (await supabase.from("announcements").select("*").order("created_at", { ascending: false })).data ?? [] });
-  const [f, setF] = useState({ title: "", description: "", is_broadcast: false });
-  const broadcast = useMutation({
+  const { data: members } = useQuery({
+    queryKey: ["admin-member-list"],
+    queryFn: async () => (await supabase.from("profiles").select("id, full_name, email, student_id").order("full_name")).data ?? [],
+  });
+  const [f, setF] = useState({ title: "", description: "" });
+  const [audience, setAudience] = useState<Audience>("public");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+
+  const filteredMembers = (members ?? []).filter((m: any) => {
+    const q = search.toLowerCase();
+    return !q || (m.full_name ?? "").toLowerCase().includes(q) || (m.email ?? "").toLowerCase().includes(q) || (m.student_id ?? "").toLowerCase().includes(q);
+  });
+
+  const post = useMutation({
     mutationFn: async () => {
-      const { data: ann, error } = await supabase.from("announcements").insert({ ...f, created_by: user!.id }).select().single();
-      if (error) throw error;
-      if (f.is_broadcast) {
-        const { data: users } = await supabase.from("profiles").select("id");
-        if (users?.length) {
-          await supabase.from("notifications").insert(users.map((u) => ({ user_id: u.id, title: ann.title, message: ann.description })));
+      if (audience === "selected" && selected.length === 0) {
+        throw new Error("Pick at least one member to notify.");
+      }
+      // Public posts go on the announcements board so everyone sees them.
+      if (audience === "public" || audience === "all") {
+        const { data: ann, error } = await supabase.from("announcements")
+          .insert({ title: f.title, description: f.description, is_broadcast: audience === "all", created_by: user!.id })
+          .select().single();
+        if (error) throw error;
+        if (audience === "all" && members?.length) {
+          const rows = members.map((u: any) => ({ user_id: u.id, title: ann.title, message: ann.description }));
+          const { error: nerr } = await supabase.from("notifications").insert(rows);
+          if (nerr) throw nerr;
         }
+      } else {
+        // Targeted: notification only, no public announcement.
+        const rows = selected.map((id) => ({ user_id: id, title: f.title, message: f.description }));
+        const { error } = await supabase.from("notifications").insert(rows);
+        if (error) throw error;
       }
     },
-    onSuccess: () => { toast.success("Posted"); setF({ title: "", description: "", is_broadcast: false }); qc.invalidateQueries({ queryKey: ["admin-announcements"] }); },
+    onSuccess: () => {
+      toast.success(audience === "selected" ? `Notice sent to ${selected.length} member(s)` : "Posted");
+      setF({ title: "", description: "" });
+      setSelected([]); setSearch(""); setAudience("public");
+      qc.invalidateQueries({ queryKey: ["admin-announcements"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  function toggle(id: string) {
+    setSelected((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  }
+
   return (
     <>
-      <form onSubmit={(e) => { e.preventDefault(); broadcast.mutate(); }} className="rounded-xl bg-card border border-border p-5 mb-5 space-y-3">
+      <form onSubmit={(e) => { e.preventDefault(); post.mutate(); }} className="rounded-xl bg-card border border-border p-5 mb-5 space-y-3">
         <input required placeholder="Title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <textarea placeholder="Description" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} rows={3} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={f.is_broadcast} onChange={(e) => setF({ ...f, is_broadcast: e.target.checked })} /> Send as notification to all members</label>
-        <button disabled={broadcast.isPending} className="inline-flex items-center gap-2 rounded-md bg-navy text-white px-4 py-2 text-sm font-semibold">{broadcast.isPending ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />} Post</button>
+        <textarea required placeholder="Description" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} rows={3} className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+
+        <fieldset className="space-y-2">
+          <legend className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">Audience</legend>
+          <div className="flex flex-wrap gap-3 text-sm">
+            <label className="inline-flex items-center gap-2"><input type="radio" name="aud" checked={audience === "public"} onChange={() => setAudience("public")} /> Public notice board only</label>
+            <label className="inline-flex items-center gap-2"><input type="radio" name="aud" checked={audience === "all"} onChange={() => setAudience("all")} /> Notify all members</label>
+            <label className="inline-flex items-center gap-2"><input type="radio" name="aud" checked={audience === "selected"} onChange={() => setAudience("selected")} /> Notify selected members</label>
+          </div>
+        </fieldset>
+
+        {audience === "selected" && (
+          <div className="rounded-md border border-border bg-background p-3 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <input
+                placeholder="Search by name, email, or ID…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs"
+              />
+              <span className="text-xs text-muted-foreground whitespace-nowrap">{selected.length} selected</span>
+            </div>
+            <div className="max-h-60 overflow-y-auto divide-y divide-border">
+              {filteredMembers.length === 0 && <p className="text-xs text-muted-foreground py-2">No members match.</p>}
+              {filteredMembers.map((m: any) => (
+                <label key={m.id} className="flex items-center gap-3 py-1.5 cursor-pointer hover:bg-muted/40 px-1 rounded">
+                  <input type="checkbox" checked={selected.includes(m.id)} onChange={() => toggle(m.id)} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{m.full_name || m.email || "Unnamed"}</p>
+                    <p className="text-xs text-muted-foreground truncate">{m.email}{m.student_id ? ` · ${m.student_id}` : ""}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button disabled={post.isPending} className="inline-flex items-center gap-2 rounded-md bg-navy text-white px-4 py-2 text-sm font-semibold disabled:opacity-60">
+          {post.isPending ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
+          {audience === "selected" ? "Send notice" : "Post"}
+        </button>
       </form>
       <List items={data} table="announcements" qkey={["admin-announcements"]} render={(a) => (<><p className="font-semibold">{a.title}</p>{a.description && <p className="text-sm text-muted-foreground line-clamp-2">{a.description}</p>}</>)} />
     </>
