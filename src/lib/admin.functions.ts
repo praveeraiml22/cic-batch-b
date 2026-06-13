@@ -147,12 +147,22 @@ export const setMemberRole = createServerFn({ method: "POST" })
 
 export const setMemberStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ userId: z.string().uuid(), status: z.enum(["active", "inactive"]) }).parse(d))
+  .inputValidator((d) => z.object({
+    userId: z.string().uuid(),
+    status: z.enum(["active", "inactive", "pending", "rejected", "suspended"]),
+  }).parse(d))
   .handler(async ({ data, context }) => {
     const { userId } = context as { userId: string };
     const supabaseAdmin = await assertAdmin(userId);
-    if (data.userId === userId && data.status === "inactive") throw new Error("You cannot deactivate your own account");
-    const { error } = await supabaseAdmin.from("profiles").update({ status: data.status }).eq("id", data.userId);
+    if (data.userId === userId && data.status !== "active") {
+      throw new Error("You cannot change your own status");
+    }
+    const patch: Record<string, any> = { status: data.status };
+    if (data.status === "active") {
+      patch.approved_by = userId;
+      patch.approved_at = new Date().toISOString();
+    }
+    const { error } = await supabaseAdmin.from("profiles").update(patch).eq("id", data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
   });
