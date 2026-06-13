@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, getAdminFileUrl } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
 import { uploadToBucket } from "@/lib/upload";
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
@@ -89,12 +89,14 @@ function AdminPage() {
       <Tabs defaultValue="stats">
         <TabsList className="flex-wrap h-auto">
           <TabsTrigger value="stats">Statistics</TabsTrigger>
+          <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
           <TabsTrigger value="members">Members</TabsTrigger>
           <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
           <TabsTrigger value="announcements">Notices</TabsTrigger>
           <TabsTrigger value="assignments">Assignments</TabsTrigger>
         </TabsList>
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
+        <TabsContent value="pending" className="mt-6"><PendingApprovalsAdmin /></TabsContent>
         <TabsContent value="members" className="mt-6"><UsersAdmin /></TabsContent>
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
@@ -518,6 +520,72 @@ function List({ items, table, qkey, render }: { items: any[] | undefined; table:
           <button onClick={() => del(it.id)} className="p-2 rounded-md text-muted-foreground hover:text-rose-600 hover:bg-rose-50 transition"><Trash2 size={15} /></button>
         </div>
       ))}
+    </div>
+  );
+}
+
+/* -------- Pending approvals -------- */
+function PendingApprovalsAdmin() {
+  const qc = useQueryClient();
+  const listUsersFn = useServerFn(listAdminUsers);
+  const setStatusFn = useServerFn(setMemberStatus);
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: () => listUsersFn({}),
+  });
+  const pending = (data ?? []).filter((u: any) => (u.status ?? "active") === "pending");
+
+  async function act(userId: string, status: "active" | "rejected" | "suspended", label: string) {
+    try {
+      await setStatusFn({ data: { userId, status } });
+      toast.success(`${label} successfully`);
+      qc.invalidateQueries({ queryKey: ["admin-users"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : `Failed to ${label.toLowerCase()}`);
+    }
+  }
+
+  if (isLoading) return <div className="grid place-items-center py-12"><Loader2 className="animate-spin" /></div>;
+
+  return (
+    <div className="rounded-xl bg-card border border-border overflow-x-auto">
+      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+        <p className="text-sm font-semibold">Pending User Requests</p>
+        <span className="text-xs text-muted-foreground">{pending.length} pending</span>
+      </div>
+      {pending.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-10">No pending requests right now.</p>
+      ) : (
+        <table className="w-full text-sm min-w-[800px]">
+          <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="text-left p-3">Name</th>
+              <th className="text-left p-3">Email</th>
+              <th className="text-left p-3">Role</th>
+              <th className="text-left p-3">Registered</th>
+              <th className="text-right p-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pending.map((u: any) => (
+              <tr key={u.id} className="border-t border-border">
+                <td className="p-3 font-medium">{u.full_name || "—"}<div className="text-xs text-muted-foreground font-normal">{u.student_id || ""}</div></td>
+                <td className="p-3 text-muted-foreground">{u.email || "—"}</td>
+                <td className="p-3 capitalize">{u.role}</td>
+                <td className="p-3 text-muted-foreground">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
+                <td className="p-3">
+                  <div className="flex items-center gap-2 justify-end">
+                    <button onClick={() => act(u.id, "active", "Approved")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-emerald-600 text-white hover:bg-emerald-700"><Check size={13} /> Approve</button>
+                    <button onClick={() => act(u.id, "rejected", "Rejected")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-rose-600 text-white hover:bg-rose-700"><X size={13} /> Reject</button>
+                    <button onClick={() => act(u.id, "suspended", "Suspended")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs border border-border hover:bg-muted">Suspend</button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
