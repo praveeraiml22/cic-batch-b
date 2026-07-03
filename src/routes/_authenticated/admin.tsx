@@ -414,8 +414,8 @@ function CoordinatorRow({ c }: { c: any }) {
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <span className="text-[10px] uppercase tracking-wider rounded-full bg-gold/20 text-[oklch(0.55_0.13_75)] px-2 py-0.5">{c.type}</span>
         <div className="min-w-0">
-          <p className="font-semibold truncate">{c.name}</p>
-          <p className="text-xs text-muted-foreground truncate">{c.designation}</p>
+          <p className="font-semibold break-words leading-snug">{c.name}</p>
+          <p className="text-xs text-muted-foreground break-words">{c.designation}</p>
         </div>
       </div>
       <div className="flex items-center gap-1">
