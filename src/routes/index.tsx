@@ -468,9 +468,9 @@ function PersonCard({
         </div>
       )}
       <div className="min-w-0">
-        <p className="font-display text-lg font-semibold text-foreground truncate">{name}</p>
-        <p className="text-sm font-medium text-navy mt-0.5">{role}</p>
-        <p className="text-xs text-muted-foreground mt-1">{dept}</p>
+        <p className="font-display text-lg font-semibold text-foreground break-words leading-snug">{name}</p>
+        <p className="text-sm font-medium text-navy mt-0.5 break-words">{role}</p>
+        <p className="text-xs text-muted-foreground mt-1 break-words">{dept}</p>
       </div>
     </motion.div>
   );
