@@ -45,7 +45,7 @@ function AuthPage() {
   const fetchAccount = useServerFn(getCurrentAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(false);
+  
   const [resetLoading, setResetLoading] = useState(false);
 
   const [email, setEmail] = useState("");
