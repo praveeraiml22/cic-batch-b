@@ -5,7 +5,7 @@ import { ArrowLeft, Loader2, Mail, Lock, User, Hash } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
+
 import { ensureMemberAccount, getCurrentAccount } from "@/lib/account.functions";
 import { toast } from "sonner";
 import { friendlyAuthError, logAuthError } from "@/lib/auth-log";
@@ -45,7 +45,7 @@ function AuthPage() {
   const fetchAccount = useServerFn(getCurrentAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [loading, setLoading] = useState(false);
-  const [oauthLoading, setOauthLoading] = useState(false);
+  
   const [resetLoading, setResetLoading] = useState(false);
 
   const [email, setEmail] = useState("");
@@ -162,27 +162,6 @@ function AuthPage() {
     }
   }
 
-  async function handleGoogle() {
-    setOauthLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/dashboard`,
-      });
-      if (result.error) {
-        const msg = "Google sign-in failed. Please try again.";
-        toast.error(msg);
-        setAnnouncement(msg);
-        void logAuthError("oauth_google", "", result.error);
-        return;
-      }
-      if (result.redirected) return;
-      await ensureAccount({});
-      toast.success("Signed in successfully.");
-      await redirectByRole();
-    } finally {
-      setOauthLoading(false);
-    }
-  }
 
   async function handleForgot() {
     const normalizedEmail = email.trim().toLowerCase();
@@ -250,21 +229,6 @@ function AuthPage() {
         </div>
 
         <div className="rounded-2xl bg-white/95 backdrop-blur p-8 shadow-elegant">
-          <button
-            type="button"
-            onClick={handleGoogle}
-            disabled={oauthLoading || loading}
-            className="w-full inline-flex items-center justify-center gap-3 rounded-lg border border-border bg-white px-4 py-3 text-sm font-semibold text-foreground hover:bg-muted transition disabled:opacity-50"
-          >
-            {oauthLoading ? <Loader2 className="animate-spin" size={18} /> : <GoogleIcon />}
-            Continue with Google
-          </button>
-
-          <div className="flex items-center gap-3 my-6">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs uppercase tracking-wider text-muted-foreground">or</span>
-            <div className="flex-1 h-px bg-border" />
-          </div>
 
           {/* aria-live region for screen readers */}
           <div className="sr-only" role="status" aria-live="polite">{announcement}</div>
@@ -414,13 +378,3 @@ const AuthField = forwardRef<HTMLInputElement, AuthFieldProps>(function AuthFiel
   );
 });
 
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden>
-      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.49h4.84a4.14 4.14 0 01-1.8 2.72v2.26h2.92a8.78 8.78 0 002.68-6.63z"/>
-      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.81.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.03-3.7H.96v2.32A9 9 0 009 18z"/>
-      <path fill="#FBBC05" d="M3.97 10.72A5.41 5.41 0 013.68 9c0-.6.1-1.18.29-1.72V4.96H.96a9 9 0 000 8.08l3.01-2.32z"/>
-      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58A9 9 0 00.96 4.96l3.01 2.32C4.68 5.16 6.66 3.58 9 3.58z"/>
-    </svg>
-  );
-}
