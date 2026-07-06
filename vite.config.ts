@@ -6,10 +6,19 @@
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
 
+// Nitro preset override. Per @lovable.dev/vite-tanstack-config docs, the
+// `preset`/`output`/`cloudflare` overrides apply ONLY outside a Lovable build —
+// inside Lovable's own build pipeline the Cloudflare preset is force-pinned.
+// So on Netlify CI this switches Nitro to the netlify preset (emits an SSR
+// function + static assets that Netlify auto-detects), while Lovable's
+// .lovable.app deploy continues to build for Cloudflare Workers unchanged.
 export default defineConfig({
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
+  },
+  nitro: {
+    preset: process.env.NITRO_PRESET || "cloudflare-module",
   },
 });
