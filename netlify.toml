@@ -8,7 +8,9 @@
 
 [build]
   command = "bun run build"
-  publish = "dist/client"
+  # Nitro's netlify preset emits static assets to `dist/` and the SSR handler
+  # to `.netlify/functions-internal/server/` (auto-detected by Netlify).
+  publish = "dist"
 
 [build.environment]
   NITRO_PRESET = "netlify"
