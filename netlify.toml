@@ -1,0 +1,18 @@
+# Netlify deployment config for this TanStack Start app.
+# Lovable's own deployment ignores this file (it builds via its own pipeline
+# targeting Cloudflare Workers), so adding this does NOT affect Lovable deploys.
+#
+# Nitro (used by TanStack Start under the hood) has a first-class "netlify"
+# preset. Setting NITRO_PRESET=netlify at build time makes the build emit a
+# Netlify Function for SSR + static assets that Netlify auto-detects.
+
+[build]
+  command = "bun run build"
+  publish = "dist/client"
+
+[build.environment]
+  NITRO_PRESET = "netlify"
+  NODE_VERSION = "20"
+
+# SPA-style fallback is NOT needed — Nitro's netlify preset wires the SSR
+# function to handle all non-static routes automatically.
