@@ -20,7 +20,8 @@ import {
   Microscope,
   Send,
 } from "lucide-react";
-import cicLogo from "@/assets/cic-logo.png.asset.json";
+// Served from /public so it works on both Lovable and Netlify deploys.
+const cicLogo = { url: "/cic-logo.png" };
 import bridgeBg from "@/assets/bridge-bg.jpg";
 
 export const Route = createFileRoute("/")({
