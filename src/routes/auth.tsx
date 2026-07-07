@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ensureMemberAccount, getCurrentAccount } from "@/lib/account.functions";
 import { toast } from "sonner";
 import { friendlyAuthError, logAuthError } from "@/lib/auth-log";
-import cicLogo from "@/assets/cic-logo.png.asset.json";
+const cicLogo = { url: "/cic-logo.png" };
 
 export const Route = createFileRoute("/auth")({
   component: AuthPage,
