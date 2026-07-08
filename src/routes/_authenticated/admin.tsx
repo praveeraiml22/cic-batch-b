@@ -596,9 +596,15 @@ function PendingApprovalsAdmin() {
                 <td className="p-3 text-muted-foreground">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
                 <td className="p-3">
                   <div className="flex items-center gap-2 justify-end">
-                    <button onClick={() => act(u.id, "active", "Approved")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-emerald-600 text-white hover:bg-emerald-700"><Check size={13} /> Approve</button>
-                    <button onClick={() => act(u.id, "rejected", "Rejected")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-rose-600 text-white hover:bg-rose-700"><X size={13} /> Reject</button>
-                    <button onClick={() => act(u.id, "suspended", "Suspended")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs border border-border hover:bg-muted">Suspend</button>
+                    {u.is_super_admin ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Shield size={13} /> Protected</span>
+                    ) : (
+                      <>
+                        <button onClick={() => act(u.id, "active", "Approved")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-emerald-600 text-white hover:bg-emerald-700"><Check size={13} /> Approve</button>
+                        <button onClick={() => act(u.id, "rejected", "Rejected")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-rose-600 text-white hover:bg-rose-700"><X size={13} /> Reject</button>
+                        <button onClick={() => act(u.id, "suspended", "Suspended")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs border border-border hover:bg-muted">Suspend</button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
