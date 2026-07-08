@@ -314,6 +314,45 @@ export type Database = {
         }
         Relationships: []
       }
+      role_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          new_role: string | null
+          old_role: string | null
+          reason: string | null
+          status: string
+          target_user_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_role?: string | null
+          old_role?: string | null
+          reason?: string | null
+          status?: string
+          target_user_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          new_role?: string | null
+          old_role?: string | null
+          reason?: string | null
+          status?: string
+          target_user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -347,9 +386,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      log_role_change: {
+        Args: {
+          _action: string
+          _actor: string
+          _new: string
+          _old: string
+          _target: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
-      app_role: "admin" | "student" | "faculty" | "coordinator"
+      app_role: "admin" | "student" | "faculty" | "coordinator" | "super_admin"
       assignment_status:
         | "submitted"
         | "under_review"
@@ -491,7 +541,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student", "faculty", "coordinator"],
+      app_role: ["admin", "student", "faculty", "coordinator", "super_admin"],
       assignment_status: [
         "submitted",
         "under_review",
