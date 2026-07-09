@@ -15,6 +15,10 @@
 [build.environment]
   NITRO_PRESET = "netlify"
   NODE_VERSION = "20"
+  VITE_SUPABASE_URL = "https://qvddcdwkbgjhkhbtefww.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2ZGRjZHdrYmdqaGtoYnRlZnd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzM2MDUsImV4cCI6MjA5NjUwOTYwNX0.x5r3CEVI_kFICh5witfk9iznkul08GbEfeJ3YUPsCLk"
+  SUPABASE_URL = "https://qvddcdwkbgjhkhbtefww.supabase.co"
+  SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2ZGRjZHdrYmdqaGtoYnRlZnd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzM2MDUsImV4cCI6MjA5NjUwOTYwNX0.x5r3CEVI_kFICh5witfk9iznkul08GbEfeJ3YUPsCLk"
 
 # SPA-style fallback is NOT needed — Nitro's netlify preset wires the SSR
 # function to handle all non-static routes automatically.

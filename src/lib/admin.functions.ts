@@ -8,14 +8,21 @@ type MemberRole = (typeof MEMBER_ROLES)[number];
 const SUPER_ADMIN_ERROR =
   "This account is the Permanent Super Admin and cannot be modified.";
 
-async function getAdminClient() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin;
+type AdminContext = { supabase: any; userId: string };
+
+async function assertAdmin(context: AdminContext) {
+  const { data, error } = await context.supabase.rpc("has_role", {
+    _user_id: context.userId,
+    _role: "admin",
+  });
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Forbidden: admin only");
+  return context;
 }
 
 /** Load full role list once per request. */
-async function loadRoles(supabaseAdmin: Awaited<ReturnType<typeof getAdminClient>>, userId: string) {
-  const { data, error } = await supabaseAdmin
+async function loadRoles(supabase: any, userId: string) {
+  const { data, error } = await supabase
     .from("user_roles")
     .select("role")
     .eq("user_id", userId);
@@ -23,25 +30,13 @@ async function loadRoles(supabaseAdmin: Awaited<ReturnType<typeof getAdminClient
   return (data ?? []).map((r) => r.role as string);
 }
 
-async function assertAdmin(userId: string) {
-  const supabaseAdmin = await getAdminClient();
-  const roles = await loadRoles(supabaseAdmin, userId);
-  if (!roles.includes("admin") && !roles.includes("super_admin")) {
-    throw new Error("Forbidden: admin only");
-  }
-  return { supabaseAdmin, callerRoles: roles, isSuperAdminCaller: roles.includes("super_admin") };
-}
-
-async function isSuperAdmin(
-  supabaseAdmin: Awaited<ReturnType<typeof getAdminClient>>,
-  userId: string,
-) {
-  const roles = await loadRoles(supabaseAdmin, userId);
+async function isSuperAdmin(supabase: any, userId: string) {
+  const roles = await loadRoles(supabase, userId);
   return roles.includes("super_admin");
 }
 
 async function logAudit(
-  supabaseAdmin: Awaited<ReturnType<typeof getAdminClient>>,
+  supabase: any,
   entry: {
     actor_id: string | null;
     target_user_id: string | null;
@@ -54,7 +49,7 @@ async function logAudit(
   },
 ) {
   try {
-    await supabaseAdmin.from("role_audit_logs").insert(entry as any);
+    await supabase.from("role_audit_logs").insert(entry as any);
   } catch {
     /* audit logging must not break the request */
   }
@@ -64,13 +59,12 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
-    if (data.userId === userId) throw new Error("You cannot delete your own account");
+    const ctx = await assertAdmin(context as AdminContext);
+    if (data.userId === ctx.userId) throw new Error("You cannot delete your own account");
 
-    if (await isSuperAdmin(supabaseAdmin, data.userId)) {
-      await logAudit(supabaseAdmin, {
-        actor_id: userId,
+    if (await isSuperAdmin(ctx.supabase, data.userId)) {
+      await logAudit(ctx.supabase, {
+        actor_id: ctx.userId,
         target_user_id: data.userId,
         action: "user.delete",
         status: "blocked",
@@ -79,12 +73,14 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
       throw new Error(SUPER_ADMIN_ERROR);
     }
 
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
-    if (error) throw new Error(error.message);
-    await logAudit(supabaseAdmin, {
-      actor_id: userId,
+    const { error: profileError } = await ctx.supabase.from("profiles").update({ status: "inactive" }).eq("id", data.userId);
+    if (profileError) throw new Error(profileError.message);
+    const { error: roleError } = await ctx.supabase.from("user_roles").delete().eq("user_id", data.userId).neq("role", "super_admin");
+    if (roleError) throw new Error(roleError.message);
+    await logAudit(ctx.supabase, {
+      actor_id: ctx.userId,
       target_user_id: data.userId,
-      action: "user.delete",
+      action: "user.deactivate",
       status: "success",
     });
     return { ok: true };
@@ -93,17 +89,16 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
 export const getAdminStats = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
+    const ctx = await assertAdmin(context as AdminContext);
     const [users, admins, superAdmins, assignments, events, anns, coords, notifs] = await Promise.all([
-      supabaseAdmin.from("profiles").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin"),
-      supabaseAdmin.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "super_admin"),
-      supabaseAdmin.from("assignments").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("events").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("announcements").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("coordinators").select("*", { count: "exact", head: true }),
-      supabaseAdmin.from("notifications").select("*", { count: "exact", head: true }),
+      ctx.supabase.from("profiles").select("*", { count: "exact", head: true }),
+      ctx.supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "admin"),
+      ctx.supabase.from("user_roles").select("*", { count: "exact", head: true }).eq("role", "super_admin"),
+      ctx.supabase.from("assignments").select("*", { count: "exact", head: true }),
+      ctx.supabase.from("events").select("*", { count: "exact", head: true }),
+      ctx.supabase.from("announcements").select("*", { count: "exact", head: true }),
+      ctx.supabase.from("coordinators").select("*", { count: "exact", head: true }),
+      ctx.supabase.from("notifications").select("*", { count: "exact", head: true }),
     ]);
     return {
       users: users.count ?? 0,
@@ -128,33 +123,29 @@ function primaryRole(roles: string[]): MemberRole | "super_admin" {
 export const listAdminUsers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
+    const ctx = await assertAdmin(context as AdminContext);
 
-    const [{ data: usersData, error: usersError }, { data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
-      supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
-      supabaseAdmin.from("profiles").select("*"),
-      supabaseAdmin.from("user_roles").select("user_id,role"),
+    const [{ data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
+      ctx.supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      ctx.supabase.from("user_roles").select("user_id,role"),
     ]);
-    if (usersError) throw new Error(usersError.message);
     if (profilesError) throw new Error(profilesError.message);
     if (rolesError) throw new Error(rolesError.message);
 
-    return usersData.users.map((authUser) => {
-      const profile = profiles?.find((p) => p.id === authUser.id) as Record<string, any> | undefined;
-      const userRoles = roles?.filter((r) => r.user_id === authUser.id).map((r) => r.role) ?? [];
+    return (profiles ?? []).map((profile: Record<string, any>) => {
+      const userRoles = roles?.filter((r) => r.user_id === profile.id).map((r) => r.role) ?? [];
       const isSuper = userRoles.includes("super_admin");
       return {
-        id: authUser.id,
-        email: authUser.email ?? profile?.email ?? "",
-        full_name: profile?.full_name ?? authUser.user_metadata?.full_name ?? authUser.user_metadata?.name ?? "",
-        student_id: profile?.student_id ?? authUser.user_metadata?.student_id ?? "",
-        department: profile?.department ?? "",
-        mobile: profile?.mobile ?? "",
-        avatar_url: profile?.avatar_url ?? "",
-        status: (profile?.status as string) ?? "active",
-        created_at: authUser.created_at,
-        email_confirmed_at: authUser.email_confirmed_at,
+        id: profile.id,
+        email: profile.email ?? "",
+        full_name: profile.full_name ?? "",
+        student_id: profile.student_id ?? "",
+        department: profile.department ?? "",
+        mobile: profile.mobile ?? "",
+        avatar_url: profile.avatar_url ?? "",
+        status: profile.status ?? "active",
+        created_at: profile.created_at,
+        email_confirmed_at: null,
         role: primaryRole(userRoles as string[]),
         roles: userRoles,
         is_admin: userRoles.includes("admin") || isSuper,
@@ -168,13 +159,12 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid(), role: z.enum(["admin", "student"]) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
-    if (data.userId === userId && data.role === "student") throw new Error("You cannot remove your own admin access");
+    const ctx = await assertAdmin(context as AdminContext);
+    if (data.userId === ctx.userId && data.role === "student") throw new Error("You cannot remove your own admin access");
 
-    if (await isSuperAdmin(supabaseAdmin, data.userId)) {
-      await logAudit(supabaseAdmin, {
-        actor_id: userId,
+    if (await isSuperAdmin(ctx.supabase, data.userId)) {
+      await logAudit(ctx.supabase, {
+        actor_id: ctx.userId,
         target_user_id: data.userId,
         action: "role.set_admin",
         new_role: data.role,
@@ -184,23 +174,23 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
       throw new Error(SUPER_ADMIN_ERROR);
     }
 
-    await supabaseAdmin.from("user_roles").upsert(
+    await ctx.supabase.from("user_roles").upsert(
       { user_id: data.userId, role: "student" },
       { onConflict: "user_id,role" },
     );
     if (data.role === "admin") {
-      const { error } = await supabaseAdmin.from("user_roles").upsert(
+      const { error } = await ctx.supabase.from("user_roles").upsert(
         { user_id: data.userId, role: "admin" },
         { onConflict: "user_id,role" },
       );
       if (error) throw new Error(error.message);
     } else {
-      const { error } = await supabaseAdmin.from("user_roles").delete().eq("user_id", data.userId).eq("role", "admin");
+      const { error } = await ctx.supabase.from("user_roles").delete().eq("user_id", data.userId).eq("role", "admin");
       if (error) throw new Error(error.message);
     }
 
-    await logAudit(supabaseAdmin, {
-      actor_id: userId,
+    await logAudit(ctx.supabase, {
+      actor_id: ctx.userId,
       target_user_id: data.userId,
       action: "role.set_admin",
       new_role: data.role,
@@ -214,14 +204,13 @@ export const setMemberRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid(), role: z.enum(MEMBER_ROLES) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
-    if (data.userId === userId && data.role !== "admin") throw new Error("You cannot remove your own admin access");
+    const ctx = await assertAdmin(context as AdminContext);
+    if (data.userId === ctx.userId && data.role !== "admin") throw new Error("You cannot remove your own admin access");
 
     // Block ANY modification to a super admin's roles through the app.
-    if (await isSuperAdmin(supabaseAdmin, data.userId)) {
-      await logAudit(supabaseAdmin, {
-        actor_id: userId,
+    if (await isSuperAdmin(ctx.supabase, data.userId)) {
+      await logAudit(ctx.supabase, {
+        actor_id: ctx.userId,
         target_user_id: data.userId,
         action: "role.set_primary",
         new_role: data.role,
@@ -232,25 +221,25 @@ export const setMemberRole = createServerFn({ method: "POST" })
     }
 
     // Fetch previous primary role for the audit trail.
-    const prevRoles = await loadRoles(supabaseAdmin, data.userId);
+    const prevRoles = await loadRoles(ctx.supabase, data.userId);
     const prev = primaryRole(prevRoles);
 
     // Replace all non-super role rows with the new primary role.
     // The trigger already blocks any accidental super_admin deletion.
-    const { error: delError } = await supabaseAdmin
+    const { error: delError } = await ctx.supabase
       .from("user_roles")
       .delete()
       .eq("user_id", data.userId)
       .neq("role", "super_admin");
     if (delError) throw new Error(delError.message);
 
-    const { error: insError } = await supabaseAdmin
+    const { error: insError } = await ctx.supabase
       .from("user_roles")
       .insert({ user_id: data.userId, role: data.role });
     if (insError) throw new Error(insError.message);
 
-    await logAudit(supabaseAdmin, {
-      actor_id: userId,
+    await logAudit(ctx.supabase, {
+      actor_id: ctx.userId,
       target_user_id: data.userId,
       action: "role.set_primary",
       old_role: prev,
@@ -267,15 +256,14 @@ export const setMemberStatus = createServerFn({ method: "POST" })
     status: z.enum(["active", "inactive", "pending", "rejected", "suspended"]),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
-    if (data.userId === userId && data.status !== "active") {
+    const ctx = await assertAdmin(context as AdminContext);
+    if (data.userId === ctx.userId && data.status !== "active") {
       throw new Error("You cannot change your own status");
     }
 
-    if (await isSuperAdmin(supabaseAdmin, data.userId)) {
-      await logAudit(supabaseAdmin, {
-        actor_id: userId,
+    if (await isSuperAdmin(ctx.supabase, data.userId)) {
+      await logAudit(ctx.supabase, {
+        actor_id: ctx.userId,
         target_user_id: data.userId,
         action: "profile.status_change",
         status: "blocked",
@@ -287,14 +275,14 @@ export const setMemberStatus = createServerFn({ method: "POST" })
 
     const patch: { status: string; approved_by?: string; approved_at?: string } = { status: data.status };
     if (data.status === "active") {
-      patch.approved_by = userId;
+      patch.approved_by = ctx.userId;
       patch.approved_at = new Date().toISOString();
     }
-    const { error } = await supabaseAdmin.from("profiles").update(patch as any).eq("id", data.userId);
+    const { error } = await ctx.supabase.from("profiles").update(patch as any).eq("id", data.userId);
     if (error) throw new Error(error.message);
 
-    await logAudit(supabaseAdmin, {
-      actor_id: userId,
+    await logAudit(ctx.supabase, {
+      actor_id: ctx.userId,
       target_user_id: data.userId,
       action: "profile.status_change",
       status: "success",
@@ -308,10 +296,9 @@ export const getAdminFileUrl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ path: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
-    const { userId } = context as { userId: string };
-    const { supabaseAdmin } = await assertAdmin(userId);
+    const ctx = await assertAdmin(context as AdminContext);
     const key = data.path.includes("cic-files/") ? data.path.split("cic-files/").pop()! : data.path;
-    const { data: signed, error } = await supabaseAdmin
+    const { data: signed, error } = await ctx.supabase
       .storage
       .from("cic-files")
       .createSignedUrl(key, 60 * 10);
