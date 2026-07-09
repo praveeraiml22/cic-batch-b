@@ -27,7 +27,7 @@ async function loadRoles(supabase: any, userId: string) {
     .select("role")
     .eq("user_id", userId);
   if (error) throw new Error(error.message);
-  return (data ?? []).map((r) => r.role as string);
+  return (data ?? []).map((r: { role: string }) => r.role as string);
 }
 
 async function isSuperAdmin(supabase: any, userId: string) {
@@ -133,7 +133,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
     if (rolesError) throw new Error(rolesError.message);
 
     return (profiles ?? []).map((profile: Record<string, any>) => {
-      const userRoles = roles?.filter((r) => r.user_id === profile.id).map((r) => r.role) ?? [];
+      const userRoles = roles?.filter((r: { user_id: string; role: string }) => r.user_id === profile.id).map((r: { role: string }) => r.role) ?? [];
       const isSuper = userRoles.includes("super_admin");
       return {
         id: profile.id,
