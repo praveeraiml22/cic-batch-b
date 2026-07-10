@@ -471,29 +471,49 @@ function UsersAdmin() {
         <tbody>
           {data?.map((u: any) => (
             <tr key={u.id} className="border-t border-border">
-              <td className="p-3 font-medium">{u.full_name || "—"}</td>
+              <td className="p-3 font-medium">
+                {u.full_name || "—"}
+                {u.is_super_admin && (
+                  <span className="ml-2 inline-flex items-center gap-1 rounded-full bg-gold/20 text-[oklch(0.45_0.13_75)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider">
+                    <Shield size={10} /> Super Admin
+                  </span>
+                )}
+              </td>
               <td className="p-3 text-muted-foreground">{u.student_id || "—"}</td>
               <td className="p-3 text-muted-foreground">{u.email || "—"}</td>
               <td className="p-3">
-                <select
-                  value={u.is_admin ? "admin" : "student"}
-                  onChange={(e) => setRole(u.id, e.target.value as any)}
-                  disabled={u.id === user?.id}
-                  className="text-xs rounded-md border border-border bg-background px-2 py-1.5 disabled:opacity-50"
-                >
-                  <option value="student">Student</option>
-                  <option value="admin">Admin</option>
-                </select>
+                {u.is_super_admin ? (
+                  <span className="text-xs text-muted-foreground italic">Permanent Super Admin</span>
+                ) : (
+                  <select
+                    value={u.is_admin ? "admin" : "student"}
+                    onChange={(e) => setRole(u.id, e.target.value as any)}
+                    disabled={u.id === user?.id}
+                    className="text-xs rounded-md border border-border bg-background px-2 py-1.5 disabled:opacity-50"
+                  >
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                )}
               </td>
               <td className="p-3 text-right">
-                <button
-                  onClick={() => removeUser(u.id, u.full_name || u.email || "this user")}
-                  disabled={u.id === user?.id}
-                  title={u.id === user?.id ? "You cannot delete yourself" : "Delete user"}
-                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-rose-600 hover:bg-rose-50 transition disabled:opacity-40 disabled:hover:bg-transparent"
-                >
-                  <Trash2 size={13} /> Delete
-                </button>
+                {u.is_super_admin ? (
+                  <span
+                    title="This account is the Permanent Super Admin and cannot be modified."
+                    className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+                  >
+                    <Shield size={13} /> Protected
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => removeUser(u.id, u.full_name || u.email || "this user")}
+                    disabled={u.id === user?.id}
+                    title={u.id === user?.id ? "You cannot delete yourself" : "Delete user"}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs text-rose-600 hover:bg-rose-50 transition disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    <Trash2 size={13} /> Delete
+                  </button>
+                )}
               </td>
             </tr>
           ))}
@@ -576,9 +596,15 @@ function PendingApprovalsAdmin() {
                 <td className="p-3 text-muted-foreground">{u.created_at ? new Date(u.created_at).toLocaleDateString() : "—"}</td>
                 <td className="p-3">
                   <div className="flex items-center gap-2 justify-end">
-                    <button onClick={() => act(u.id, "active", "Approved")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-emerald-600 text-white hover:bg-emerald-700"><Check size={13} /> Approve</button>
-                    <button onClick={() => act(u.id, "rejected", "Rejected")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-rose-600 text-white hover:bg-rose-700"><X size={13} /> Reject</button>
-                    <button onClick={() => act(u.id, "suspended", "Suspended")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs border border-border hover:bg-muted">Suspend</button>
+                    {u.is_super_admin ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Shield size={13} /> Protected</span>
+                    ) : (
+                      <>
+                        <button onClick={() => act(u.id, "active", "Approved")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-emerald-600 text-white hover:bg-emerald-700"><Check size={13} /> Approve</button>
+                        <button onClick={() => act(u.id, "rejected", "Rejected")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs bg-rose-600 text-white hover:bg-rose-700"><X size={13} /> Reject</button>
+                        <button onClick={() => act(u.id, "suspended", "Suspended")} className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs border border-border hover:bg-muted">Suspend</button>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
