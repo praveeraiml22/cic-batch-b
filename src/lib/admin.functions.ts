@@ -2,65 +2,24 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { installServerWebSocketShim } from "./websocket-shim";
 import { installServerRuntime } from "./server-runtime-middleware";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireAppAuth } from "./supabase-auth-runtime";
+import {
+  SUPER_ADMIN_ERROR,
+  assertAdmin,
+  isSuperAdmin,
+  loadRoles,
+  logAudit,
+  primaryRole,
+  type AdminContext,
+} from "./admin.server";
 
 installServerWebSocketShim();
 
 const MEMBER_ROLES = ["admin", "faculty", "coordinator", "student"] as const;
 type MemberRole = (typeof MEMBER_ROLES)[number];
 
-const SUPER_ADMIN_ERROR =
-  "This account is the Permanent Super Admin and cannot be modified.";
-
-type AdminContext = { supabase: any; userId: string };
-
-async function assertAdmin(context: AdminContext) {
-  const { data, error } = await context.supabase.rpc("has_role", {
-    _user_id: context.userId,
-    _role: "admin",
-  });
-  if (error) throw new Error(error.message);
-  if (!data) throw new Error("Forbidden: admin only");
-  return context;
-}
-
-/** Load full role list once per request. */
-async function loadRoles(supabase: any, userId: string) {
-  const { data, error } = await supabase
-    .from("user_roles")
-    .select("role")
-    .eq("user_id", userId);
-  if (error) throw new Error(error.message);
-  return (data ?? []).map((r: { role: string }) => r.role as string);
-}
-
-async function isSuperAdmin(supabase: any, userId: string) {
-  const roles = await loadRoles(supabase, userId);
-  return roles.includes("super_admin");
-}
-
-async function logAudit(
-  supabase: any,
-  entry: {
-    actor_id: string | null;
-    target_user_id: string | null;
-    action: string;
-    old_role?: string | null;
-    new_role?: string | null;
-    status: "success" | "blocked" | "error";
-    reason?: string | null;
-    metadata?: Record<string, unknown> | null;
-  },
-) {
-  try {
-    await supabase.from("role_audit_logs").insert(entry as any);
-  } catch {
-    /* audit logging must not break the request */
-  }
-}
-
 export const deleteUserAccount = createServerFn({ method: "POST" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = await assertAdmin(context as AdminContext);
@@ -91,7 +50,7 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
   });
 
 export const getAdminStats = createServerFn({ method: "GET" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .handler(async ({ context }) => {
     const ctx = await assertAdmin(context as AdminContext);
     const [users, admins, superAdmins, assignments, events, anns, coords, notifs] = await Promise.all([
@@ -116,16 +75,8 @@ export const getAdminStats = createServerFn({ method: "GET" })
     };
   });
 
-function primaryRole(roles: string[]): MemberRole | "super_admin" {
-  if (roles.includes("super_admin")) return "super_admin";
-  if (roles.includes("admin")) return "admin";
-  if (roles.includes("faculty")) return "faculty";
-  if (roles.includes("coordinator")) return "coordinator";
-  return "student";
-}
-
 export const listAdminUsers = createServerFn({ method: "GET" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .handler(async ({ context }) => {
     const ctx = await assertAdmin(context as AdminContext);
 
@@ -160,7 +111,7 @@ export const listAdminUsers = createServerFn({ method: "GET" })
 
 /** Legacy two-role helper (admin/student) kept for back-compat. */
 export const setUserAdminRole = createServerFn({ method: "POST" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid(), role: z.enum(["admin", "student"]) }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = await assertAdmin(context as AdminContext);
@@ -205,7 +156,7 @@ export const setUserAdminRole = createServerFn({ method: "POST" })
 
 /** Set a member's primary role. Super admin is never assignable through this API. */
 export const setMemberRole = createServerFn({ method: "POST" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .inputValidator((d) => z.object({ userId: z.string().uuid(), role: z.enum(MEMBER_ROLES) }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = await assertAdmin(context as AdminContext);
@@ -254,7 +205,7 @@ export const setMemberRole = createServerFn({ method: "POST" })
   });
 
 export const setMemberStatus = createServerFn({ method: "POST" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .inputValidator((d) => z.object({
     userId: z.string().uuid(),
     status: z.enum(["active", "inactive", "pending", "rejected", "suspended"]),
@@ -297,7 +248,7 @@ export const setMemberStatus = createServerFn({ method: "POST" })
 
 /** Generate a short-lived signed URL so admins can download any user's submission. */
 export const getAdminFileUrl = createServerFn({ method: "POST" })
-  .middleware([installServerRuntime, requireSupabaseAuth])
+  .middleware([installServerRuntime, requireAppAuth])
   .inputValidator((d) => z.object({ path: z.string().min(1) }).parse(d))
   .handler(async ({ data, context }) => {
     const ctx = await assertAdmin(context as AdminContext);
