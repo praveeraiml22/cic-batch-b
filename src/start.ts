@@ -1,10 +1,7 @@
 import { createStart, createMiddleware } from "@tanstack/react-start";
 
-import { installServerWebSocketShim } from "./lib/websocket-shim";
 import { renderErrorPage } from "./lib/error-page";
 import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
-
-installServerWebSocketShim();
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
