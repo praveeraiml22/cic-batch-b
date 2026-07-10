@@ -1,5 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import { installServerWebSocketShim } from "./websocket-shim";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+installServerWebSocketShim();
 
 type AccountContext = {
   supabase: any;

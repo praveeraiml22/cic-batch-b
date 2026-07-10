@@ -1,6 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { installServerWebSocketShim } from "./websocket-shim";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
+installServerWebSocketShim();
 
 const MEMBER_ROLES = ["admin", "faculty", "coordinator", "student"] as const;
 type MemberRole = (typeof MEMBER_ROLES)[number];

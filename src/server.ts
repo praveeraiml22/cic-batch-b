@@ -1,8 +1,10 @@
-import "./lib/websocket-shim";
 import "./lib/error-capture";
 
+import { installServerWebSocketShim } from "./lib/websocket-shim";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+
+installServerWebSocketShim();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;

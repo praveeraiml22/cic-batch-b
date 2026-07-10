@@ -9,7 +9,10 @@
 // created on the server. It is a no-op in the browser (where a real
 // WebSocket exists).
 
-if (typeof globalThis !== "undefined" && typeof (globalThis as any).WebSocket === "undefined") {
+export function installServerWebSocketShim() {
+  if (typeof window !== "undefined") return;
+  if (typeof globalThis === "undefined" || typeof (globalThis as any).WebSocket !== "undefined") return;
+
   class NoopWebSocket {
     static readonly CONNECTING = 0;
     static readonly OPEN = 1;
@@ -17,7 +20,13 @@ if (typeof globalThis !== "undefined" && typeof (globalThis as any).WebSocket ==
     static readonly CLOSED = 3;
     readyState = 3;
     url = "";
-    constructor() {
+    protocol = "";
+    onopen = null;
+    onmessage = null;
+    onclose = null;
+    onerror = null;
+    constructor(url?: string) {
+      this.url = url ?? "";
       // Intentionally does nothing. Server code must not open Realtime channels.
     }
     close() {}
@@ -30,5 +39,3 @@ if (typeof globalThis !== "undefined" && typeof (globalThis as any).WebSocket ==
   }
   (globalThis as any).WebSocket = NoopWebSocket;
 }
-
-export {};
