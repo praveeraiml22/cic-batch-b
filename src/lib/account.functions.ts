@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { installServerWebSocketShim } from "./websocket-shim";
+import { installServerRuntime } from "./server-runtime-middleware";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 installServerWebSocketShim();
@@ -59,12 +60,12 @@ async function loadOrCreateAccount(context: AccountContext) {
 }
 
 export const ensureMemberAccount = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
+  .middleware([installServerRuntime, requireSupabaseAuth])
   .handler(async ({ context }) => {
     await loadOrCreateAccount(context as AccountContext);
     return { ok: true };
   });
 
 export const getCurrentAccount = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
+  .middleware([installServerRuntime, requireSupabaseAuth])
   .handler(async ({ context }) => loadOrCreateAccount(context as AccountContext));
