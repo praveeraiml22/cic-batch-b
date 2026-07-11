@@ -1,11 +1,11 @@
 {
-  "version": 1,
   "asset_id": "5d09a45e-7cb6-483d-b9ca-855818dde49e",
-  "project_id": "ca45acac-919b-4792-abc6-3b17d2ee3337",
-  "url": "/__l5e/assets-v1/5d09a45e-7cb6-483d-b9ca-855818dde49e/cic-logo.png",
-  "r2_key": "a/v1/ca45acac-919b-4792-abc6-3b17d2ee3337/5d09a45e-7cb6-483d-b9ca-855818dde49e/cic-logo.png",
-  "original_filename": "cic-logo.png",
-  "size": 117972,
   "content_type": "image/png",
-  "created_at": "2026-06-08T17:55:57Z"
+  "created_at": "2026-06-08T17:55:57Z",
+  "original_filename": "cic-logo.png",
+  "project_id": "d8c49199-230d-446a-97bb-3344b5f1b61b",
+  "r2_key": "a/v1/d8c49199-230d-446a-97bb-3344b5f1b61b/5d09a45e-7cb6-483d-b9ca-855818dde49e/cic-logo.png",
+  "size": 117972,
+  "url": "/__l5e/assets-v1/5d09a45e-7cb6-483d-b9ca-855818dde49e/cic-logo.png",
+  "version": 1
 }
