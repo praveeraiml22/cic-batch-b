@@ -12,9 +12,35 @@
   # to `.netlify/functions-internal/server/` (auto-detected by Netlify).
   publish = "dist"
 
+# Public + publishable env vars baked into every Netlify build so the site
+# works out of the box without manual configuration in the Netlify UI.
+# These are the SAME publishable values already committed to .env — they are
+# safe to expose (anon/publishable key, project URL). Secrets are NOT here.
 [build.environment]
   NITRO_PRESET = "netlify"
   NODE_VERSION = "20"
+
+  # Client-side (Vite build-time replacement)
+  VITE_SUPABASE_URL = "https://qvddcdwkbgjhkhbtefww.supabase.co"
+  VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2ZGRjZHdrYmdqaGtoYnRlZnd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzM2MDUsImV4cCI6MjA5NjUwOTYwNX0.x5r3CEVI_kFICh5witfk9iznkul08GbEfeJ3YUPsCLk"
+  VITE_SUPABASE_PROJECT_ID = "qvddcdwkbgjhkhbtefww"
+
+  # Server-side (SSR + server functions on Netlify Functions)
+  SUPABASE_URL = "https://qvddcdwkbgjhkhbtefww.supabase.co"
+  SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF2ZGRjZHdrYmdqaGtoYnRlZnd3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MzM2MDUsImV4cCI6MjA5NjUwOTYwNX0.x5r3CEVI_kFICh5witfk9iznkul08GbEfeJ3YUPsCLk"
+  SUPABASE_PROJECT_ID = "qvddcdwkbgjhkhbtefww"
+
+# =====================================================================
+# REQUIRED: add these SECRETS in Netlify UI
+# (Site settings → Environment variables) — never commit them here:
+#
+#   SUPABASE_SERVICE_ROLE_KEY  → needed for admin server functions
+#                                (user management, approvals, admin downloads)
+#   LOVABLE_API_KEY            → only if you use Lovable AI features
+#
+# Without SUPABASE_SERVICE_ROLE_KEY, the public site still runs, but
+# admin-only actions (approve users, change roles, admin downloads) fail.
+# =====================================================================
 
 # SPA-style fallback is NOT needed — Nitro's netlify preset wires the SSR
 # function to handle all non-static routes automatically.
