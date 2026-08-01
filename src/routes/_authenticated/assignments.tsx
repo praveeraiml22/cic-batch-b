@@ -133,30 +133,33 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
   }
 
   return (
-    <div className="rounded-2xl bg-card border border-border p-6 hover:border-gold/40 transition">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-start gap-4 min-w-0 flex-1">
-          <div className="h-11 w-11 rounded-xl bg-navy/5 text-navy grid place-items-center flex-shrink-0">
-            <FileText size={18} />
-          </div>
-          <div className="min-w-0">
-            <p className="font-semibold text-foreground truncate">{a.title}</p>
-            <p className="text-sm text-muted-foreground">{a.subject} · {a.semester || "—"}</p>
-            {a.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{a.description}</p>}
-            {a.feedback && (
-              <div className="mt-3 rounded-lg bg-muted/60 p-3 border-l-2 border-gold">
-                <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Feedback</p>
-                <p className="text-sm text-foreground">{a.feedback}</p>
-                {a.grade && <p className="text-xs text-navy font-semibold mt-1">Grade: {a.grade}</p>}
-              </div>
-            )}
-          </div>
+    <div className="rounded-2xl bg-card border border-border p-4 sm:p-6 hover:border-gold/40 transition">
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className="h-10 w-10 sm:h-11 sm:w-11 rounded-xl bg-navy/5 text-navy grid place-items-center shrink-0">
+          <FileText size={18} />
         </div>
-        <div className="flex flex-col items-end gap-2">
-          <span className={`px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_COLORS[a.status] || "bg-muted"}`}>
-            {a.status.replace(/_/g, " ")}
-          </span>
-          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-2">
+            <p className="font-semibold text-foreground text-base leading-snug break-words min-w-0 flex-1">
+              {a.title}
+            </p>
+            <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-semibold uppercase tracking-wider ${STATUS_COLORS[a.status] || "bg-muted"}`}>
+              {a.status.replace(/_/g, " ")}
+            </span>
+          </div>
+          <p className="text-sm text-muted-foreground mt-1 break-words">
+            {a.subject} · {a.semester || "—"}
+          </p>
+          {a.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-3 break-words">{a.description}</p>}
+          {a.feedback && (
+            <div className="mt-3 rounded-lg bg-muted/60 p-3 border-l-2 border-gold">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Feedback</p>
+              <p className="text-sm text-foreground break-words">{a.feedback}</p>
+              {a.grade && <p className="text-xs text-navy font-semibold mt-1">Grade: {a.grade}</p>}
+            </div>
+          )}
+
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border pt-3">
             {a.file_url && (
               <button onClick={download} disabled={busy === "download"} className="inline-flex items-center gap-1.5 text-xs text-navy hover:text-gold transition disabled:opacity-50">
                 {busy === "download" ? <Loader2 className="animate-spin" size={12} /> : <Download size={12} />} {formatBytes(a.file_size)}
@@ -189,6 +192,7 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
     </div>
   );
 }
+
 
 function SubmitForm({ onDone }: { onDone: () => void }) {
   const { user } = useAuth();
