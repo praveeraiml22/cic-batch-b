@@ -188,8 +188,6 @@ function AssignmentsAdmin() {
             {a.file_url && <AdminDownloadButton path={a.file_url} name={a.file_name} />}
           </div>
         </div>
-
-        </div>
       ))}
     </div>
   );
