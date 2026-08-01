@@ -84,17 +84,20 @@ function AdminPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto">
       <PageHeader title="Admin Panel" subtitle="Manage members, content, and submissions." />
       <Tabs defaultValue="stats">
-        <TabsList className="flex-wrap h-auto">
-          <TabsTrigger value="stats">Statistics</TabsTrigger>
-          <TabsTrigger value="pending">Pending Approvals</TabsTrigger>
-          <TabsTrigger value="members">Members</TabsTrigger>
-          <TabsTrigger value="coordinators">Faculty & Coordinators</TabsTrigger>
-          <TabsTrigger value="announcements">Notices</TabsTrigger>
-          <TabsTrigger value="assignments">Assignments</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 px-4 sm:mx-0 sm:px-0 overflow-x-auto">
+          <TabsList className="h-auto w-max flex-nowrap sm:w-full sm:flex-wrap">
+            <TabsTrigger value="stats" className="whitespace-nowrap">Statistics</TabsTrigger>
+            <TabsTrigger value="pending" className="whitespace-nowrap">Pending Approvals</TabsTrigger>
+            <TabsTrigger value="members" className="whitespace-nowrap">Members</TabsTrigger>
+            <TabsTrigger value="coordinators" className="whitespace-nowrap">Faculty &amp; Coordinators</TabsTrigger>
+            <TabsTrigger value="announcements" className="whitespace-nowrap">Notices</TabsTrigger>
+            <TabsTrigger value="assignments" className="whitespace-nowrap">Assignments</TabsTrigger>
+          </TabsList>
+        </div>
+
         <TabsContent value="stats" className="mt-6"><StatsAdmin /></TabsContent>
         <TabsContent value="pending" className="mt-6"><PendingApprovalsAdmin /></TabsContent>
         <TabsContent value="members" className="mt-6"><UsersAdmin /></TabsContent>
