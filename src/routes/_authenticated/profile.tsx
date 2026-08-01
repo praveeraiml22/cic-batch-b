@@ -112,13 +112,13 @@ function ProfilePage() {
   if (isLoading) return <div className="grid place-items-center min-h-[60vh]"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-3xl mx-auto">
       <PageHeader
         title="My Profile"
         subtitle="Manage your member details and profile photo."
         action={
           editing ? (
-            <div className="flex gap-2">
+            <div className="flex gap-2 [&>button]:flex-1 sm:[&>button]:flex-none">
               <button
                 onClick={() => { setEditing(false); if (profile) setForm({
                   full_name: profile.full_name ?? "", student_id: profile.student_id ?? "",
@@ -126,30 +126,31 @@ function ProfilePage() {
                   department: profile.department ?? "Civil Engineering", semester: profile.semester ?? "",
                   mobile: profile.mobile ?? "", bio: (profile as any).bio ?? "", address: (profile as any).address ?? "",
                 }); }}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold"
               ><X size={16} /> Cancel</button>
               <button
                 onClick={() => save.mutate()}
                 disabled={save.isPending}
-                className="inline-flex items-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition disabled:opacity-50"
               >{save.isPending ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />} Save</button>
             </div>
           ) : (
             <button
               onClick={() => setEditing(true)}
-              className="inline-flex items-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition"
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition"
             ><Pencil size={16} /> Edit profile</button>
           )
         }
       />
 
-      <section className="rounded-2xl bg-card border border-border p-7 space-y-6">
-        <div className="flex items-center gap-5 pb-5 border-b border-border">
-          <div className="relative">
+      <section className="rounded-2xl bg-card border border-border p-5 sm:p-7 space-y-6">
+        <div className="flex items-center gap-4 sm:gap-5 pb-5 border-b border-border">
+          <div className="relative shrink-0">
             {avatarUrl ? (
-              <img src={avatarUrl} alt={form.full_name || "Avatar"} className="h-20 w-20 rounded-full object-cover ring-2 ring-gold/40" />
+              <img src={avatarUrl} alt={form.full_name || "Avatar"} className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover ring-2 ring-gold/40" />
             ) : (
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] grid place-items-center text-navy-deep font-display text-2xl font-bold">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] grid place-items-center text-navy-deep font-display text-xl sm:text-2xl font-bold">
+
                 {(form.full_name || user?.email || "?")[0].toUpperCase()}
               </div>
             )}
@@ -171,11 +172,12 @@ function ProfilePage() {
           <div className="min-w-0">
             <p className="font-semibold text-foreground truncate">{form.full_name || "—"}</p>
             <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
-            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1"><UserIcon size={12} /> JPG, PNG or WEBP, max 5 MB</p>
+            <p className="text-[11px] text-muted-foreground mt-1 flex items-center gap-1"><UserIcon size={12} className="shrink-0" /> JPG, PNG or WEBP, max 5 MB</p>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-5">
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
+
           <Field label="Full Name" value={form.full_name} onChange={(v) => setForm({ ...form, full_name: v })} editing={editing} />
           <Field label="Email" value={user?.email ?? ""} onChange={() => {}} editing={false} hint="Email is read-only." />
           <Field label="Student ID" value={form.student_id} onChange={() => {}} editing={false} hint="Set at signup, contact an admin to change." />

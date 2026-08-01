@@ -54,34 +54,35 @@ function DashboardPage() {
   ];
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto">
       <PageHeader
         title={`Welcome, ${profile?.full_name?.split(" ")[0] || "Member"}`}
         subtitle="Here's a quick snapshot of your CIC activity."
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {cards.map((c, i) => (
           <motion.div
             key={c.label}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.06 }}
-            className="rounded-2xl bg-card border border-border p-6"
+            className="rounded-2xl bg-card border border-border p-4 sm:p-6"
           >
-            <div className={`h-10 w-10 rounded-xl ${c.color} grid place-items-center mb-4`}>
+            <div className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl ${c.color} grid place-items-center mb-3 sm:mb-4`}>
               <c.icon size={18} />
             </div>
-            <p className="font-display text-3xl font-bold text-foreground">{c.value}</p>
-            <p className="text-xs uppercase tracking-wider text-muted-foreground mt-1">{c.label}</p>
+            <p className="font-display text-2xl sm:text-3xl font-bold text-foreground">{c.value}</p>
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider text-muted-foreground mt-1 leading-snug break-words">{c.label}</p>
           </motion.div>
         ))}
       </div>
 
-      <div className="mt-10 grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 rounded-2xl bg-card border border-border p-7">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-xl font-semibold">Quick actions</h2>
+
+      <div className="mt-8 sm:mt-10 grid lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="lg:col-span-2 rounded-2xl bg-card border border-border p-5 sm:p-7">
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
+            <h2 className="font-display text-lg sm:text-xl font-semibold">Quick actions</h2>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <ActionCard to="/assignments" title="Submit assignment" desc="Upload a new submission" />
@@ -91,7 +92,8 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-gradient-to-br from-navy to-navy-deep text-white p-7">
+        <div className="rounded-2xl bg-gradient-to-br from-navy to-navy-deep text-white p-5 sm:p-7">
+
           <div className="flex items-center gap-2 text-gold mb-3">
             <Megaphone size={16} />
             <span className="text-xs uppercase tracking-[0.2em]">Announcements</span>
