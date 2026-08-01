@@ -79,10 +79,10 @@ function DashboardPage() {
       </div>
 
 
-      <div className="mt-10 grid lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2 rounded-2xl bg-card border border-border p-7">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="font-display text-xl font-semibold">Quick actions</h2>
+      <div className="mt-8 sm:mt-10 grid lg:grid-cols-3 gap-4 sm:gap-5">
+        <div className="lg:col-span-2 rounded-2xl bg-card border border-border p-5 sm:p-7">
+          <div className="flex items-center justify-between mb-4 sm:mb-5">
+            <h2 className="font-display text-lg sm:text-xl font-semibold">Quick actions</h2>
           </div>
           <div className="grid sm:grid-cols-2 gap-3">
             <ActionCard to="/assignments" title="Submit assignment" desc="Upload a new submission" />
@@ -92,7 +92,8 @@ function DashboardPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-gradient-to-br from-navy to-navy-deep text-white p-7">
+        <div className="rounded-2xl bg-gradient-to-br from-navy to-navy-deep text-white p-5 sm:p-7">
+
           <div className="flex items-center gap-2 text-gold mb-3">
             <Megaphone size={16} />
             <span className="text-xs uppercase tracking-[0.2em]">Announcements</span>

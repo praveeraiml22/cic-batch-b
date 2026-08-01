@@ -31,7 +31,7 @@ function NotificationsPage() {
   }
 
   return (
-    <div className="p-6 lg:p-10 max-w-4xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto">
       <PageHeader
         title="Notifications"
         subtitle="Stay up to date with assignment, feedback, and announcement activity."
@@ -44,25 +44,26 @@ function NotificationsPage() {
       {isLoading ? (
         <div className="grid place-items-center py-20"><Loader2 className="animate-spin" /></div>
       ) : !data?.length ? (
-        <div className="rounded-2xl border-2 border-dashed border-border p-14 text-center">
+        <div className="rounded-2xl border-2 border-dashed border-border p-8 sm:p-14 text-center">
           <Bell className="mx-auto text-muted-foreground" size={32} />
           <p className="mt-4 font-semibold">You're all caught up</p>
         </div>
       ) : (
         <div className="space-y-2">
           {data.map((n) => (
-            <div key={n.id} className={`rounded-xl border p-5 flex gap-4 ${n.is_read ? "bg-card border-border" : "bg-gold/5 border-gold/30"}`}>
-              <div className="h-10 w-10 rounded-full bg-navy/5 text-navy grid place-items-center flex-shrink-0">
+            <div key={n.id} className={`rounded-xl border p-4 sm:p-5 flex gap-3 sm:gap-4 ${n.is_read ? "bg-card border-border" : "bg-gold/5 border-gold/30"}`}>
+              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-full bg-navy/5 text-navy grid place-items-center shrink-0">
                 <Bell size={16} />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="font-semibold text-foreground">{n.title}</p>
-                  <span className="text-xs text-muted-foreground flex-shrink-0">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</span>
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                  <p className="font-semibold text-foreground break-words min-w-0 flex-1">{n.title}</p>
+                  <span className="text-[11px] sm:text-xs text-muted-foreground shrink-0">{formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}</span>
                 </div>
-                {n.message && <p className="text-sm text-muted-foreground mt-1">{n.message}</p>}
+                {n.message && <p className="text-sm text-muted-foreground mt-1 break-words">{n.message}</p>}
               </div>
             </div>
+
           ))}
         </div>
       )}

@@ -112,7 +112,7 @@ function ProfilePage() {
   if (isLoading) return <div className="grid place-items-center min-h-[60vh]"><Loader2 className="animate-spin" /></div>;
 
   return (
-    <div className="p-6 lg:p-10 max-w-3xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-3xl mx-auto">
       <PageHeader
         title="My Profile"
         subtitle="Manage your member details and profile photo."

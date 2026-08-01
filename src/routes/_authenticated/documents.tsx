@@ -49,7 +49,7 @@ function DocumentsPage() {
   });
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto">
       <PageHeader
         title="Document Library"
         subtitle="Browse, search, and upload course materials and references."
