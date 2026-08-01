@@ -76,7 +76,7 @@ function Navbar() {
           : "bg-transparent"
       }`}
     >
-      <nav className="mx-auto max-w-7xl px-6 lg:px-10 h-20 flex items-center justify-between">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 h-20 flex items-center justify-between">
         <a href="#" className="flex items-center gap-3 group">
           <div className="h-11 w-11 rounded-xl bg-white p-1.5 shadow-gold ring-1 ring-gold/40">
             <img src={cicLogo.url} alt="CIC Logo" className="h-full w-full object-contain" />
@@ -187,7 +187,7 @@ function Hero() {
         className="absolute bottom-0 right-0 h-[28rem] w-[28rem] rounded-full bg-gold/10 blur-3xl"
       />
 
-      <div className="relative mx-auto max-w-7xl px-6 lg:px-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-16 items-center">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 grid lg:grid-cols-[1.1fr_0.9fr] gap-16 items-center">
         <div>
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -203,7 +203,7 @@ function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="mt-6 font-display text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight"
+            className="mt-6 font-display text-4xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight"
           >
             Civil <span className="text-gradient-gold italic">Innovation</span>
             <br />
@@ -300,8 +300,8 @@ function About() {
   ];
 
   return (
-    <section id="about" className="py-24 lg:py-32 bg-background">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section id="about" className="py-16 sm:py-24 lg:py-32 bg-background">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <SectionHeader
           eyebrow="About CIC"
           title="Where civil engineering meets innovation"
@@ -316,7 +316,7 @@ function About() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-80px" }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
-              className="group relative rounded-2xl bg-card border border-border p-8 hover:border-gold/40 hover:-translate-y-1 transition-all duration-300"
+              className="group relative rounded-2xl bg-card border border-border p-6 sm:p-8 hover:border-gold/40 hover:-translate-y-1 transition-all duration-300"
             >
               <div className="absolute top-0 left-8 -translate-y-1/2 h-12 w-12 rounded-xl bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] grid place-items-center shadow-gold">
                 <p.icon className="text-navy-deep" size={22} />
@@ -327,7 +327,7 @@ function About() {
           ))}
         </div>
 
-        <div className="mt-20 rounded-3xl bg-gradient-to-br from-navy to-navy-deep p-10 lg:p-14 text-white relative overflow-hidden">
+        <div className="mt-20 rounded-3xl bg-gradient-to-br from-navy to-navy-deep p-6 sm:p-10 lg:p-14 text-white relative overflow-hidden">
           <div
             className="absolute inset-0 opacity-10"
             style={{
@@ -387,8 +387,8 @@ function Coordinators() {
   const students = members.filter((m) => m.type === "student");
 
   return (
-    <section id="team" className="py-24 lg:py-32 bg-muted/40 border-y border-border">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10">
+    <section id="team" className="py-16 sm:py-24 lg:py-32 bg-muted/40 border-y border-border">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
         <SectionHeader
           eyebrow="Leadership"
           title="The people behind CIC"
@@ -480,11 +480,11 @@ function PersonCard({
 /* ---------- CONTACT ---------- */
 function Contact() {
   return (
-    <section id="contact" className="py-24 lg:py-32">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10 grid lg:grid-cols-[1fr_1fr] gap-12">
+    <section id="contact" className="py-16 sm:py-24 lg:py-32">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 grid lg:grid-cols-[1fr_1fr] gap-12">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-gold font-semibold">Get in touch</p>
-          <h2 className="mt-3 font-display text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+          <h2 className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
             Have an idea worth building?
           </h2>
           <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-md">
@@ -533,7 +533,7 @@ function Contact() {
 
         <form
           onSubmit={(e) => e.preventDefault()}
-          className="rounded-3xl bg-card border border-border p-8 lg:p-10 shadow-elegant"
+          className="rounded-3xl bg-card border border-border p-6 sm:p-8 lg:p-10 shadow-elegant"
         >
           <div className="grid sm:grid-cols-2 gap-5">
             <Field label="Full Name" placeholder="Aarav Patel" />
@@ -592,7 +592,7 @@ function Field({
 function Footer() {
   return (
     <footer className="bg-navy-deep text-white/70">
-      <div className="mx-auto max-w-7xl px-6 lg:px-10 py-14 grid md:grid-cols-[1.4fr_1fr_1fr] gap-10">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-14 grid md:grid-cols-[1.4fr_1fr_1fr] gap-10">
         <div>
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-xl bg-white p-1.5 ring-1 ring-gold/40">
@@ -626,7 +626,7 @@ function Footer() {
         </div>
       </div>
       <div className="border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-6 lg:px-10 py-5 flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 py-5 flex flex-wrap items-center justify-between gap-3 text-xs text-white/50">
           <p>© {new Date().getFullYear()} Civil Innovation Club, MNNIT Allahabad. All rights reserved.</p>
           <p className="uppercase tracking-[0.2em] text-gold-soft">Innovating Infrastructure</p>
         </div>
@@ -661,7 +661,7 @@ function SectionHeader({
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6, delay: 0.05 }}
-        className="mt-3 font-display text-4xl lg:text-5xl font-bold text-foreground leading-[1.1]"
+        className="mt-3 font-display text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-[1.1]"
       >
         {title}
       </motion.h2>
