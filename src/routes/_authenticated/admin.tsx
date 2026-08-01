@@ -166,13 +166,13 @@ function AssignmentsAdmin() {
     <div className="space-y-3">
       {!data?.length && <p className="text-sm text-muted-foreground text-center py-8">No assignments submitted yet.</p>}
       {data?.map((a: any) => (
-        <div key={a.id} className="rounded-xl bg-card border border-border p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold">{a.title}</p>
-              <p className="text-xs text-muted-foreground">{a.subject} · {a.profiles?.full_name ?? "Unknown"} ({a.profiles?.student_id ?? "—"})</p>
+        <div key={a.id} className="rounded-xl bg-card border border-border p-4 sm:p-5">
+          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-semibold break-words leading-snug">{a.title}</p>
+              <p className="text-xs text-muted-foreground break-words mt-0.5">{a.subject} · {a.profiles?.full_name ?? "Unknown"} ({a.profiles?.student_id ?? "—"})</p>
             </div>
-            <select value={a.status} onChange={(e) => update(a.id, { status: e.target.value, reviewed_at: new Date().toISOString() })} className="text-xs rounded-md border border-border bg-background px-2 py-1.5">
+            <select value={a.status} onChange={(e) => update(a.id, { status: e.target.value, reviewed_at: new Date().toISOString() })} className="w-full sm:w-auto text-xs rounded-md border border-border bg-background px-2 py-1.5">
               <option value="submitted">submitted</option>
               <option value="under_review">under_review</option>
               <option value="approved">approved</option>
@@ -180,13 +180,15 @@ function AssignmentsAdmin() {
               <option value="resubmission_required">resubmission_required</option>
             </select>
           </div>
-          <div className="mt-4 grid sm:grid-cols-[1fr_auto_auto] gap-3 items-start">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-3 items-start">
             <textarea defaultValue={a.feedback ?? ""} rows={2} placeholder="Feedback..." onBlur={(e) => e.target.value !== (a.feedback ?? "") && update(a.id, { feedback: e.target.value })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
             <input defaultValue={a.grade ?? ""} placeholder="Grade" onBlur={(e) => e.target.value !== (a.grade ?? "") && update(a.id, { grade: e.target.value })}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm w-24" />
+              className="rounded-md border border-border bg-background px-3 py-2 text-sm w-full sm:w-24" />
             {a.file_url && <AdminDownloadButton path={a.file_url} name={a.file_name} />}
           </div>
+        </div>
+
         </div>
       ))}
     </div>
