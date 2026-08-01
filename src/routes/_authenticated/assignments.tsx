@@ -225,7 +225,6 @@ function SubmitForm({ onDone }: { onDone: () => void }) {
       className="rounded-2xl bg-card border border-border p-4 sm:p-7 mb-6 space-y-5"
     >
       <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
-
         <Input label="Title" value={title} onChange={setTitle} required />
         <Input label="Subject" value={subject} onChange={setSubject} required />
         <Input label="Semester" value={semester} onChange={setSemester} placeholder="6th" />
@@ -274,7 +273,7 @@ function Input({ label, value, onChange, required, placeholder }: { label: strin
 
 function EmptyState() {
   return (
-    <div className="rounded-2xl border-2 border-dashed border-border p-14 text-center">
+    <div className="rounded-2xl border-2 border-dashed border-border p-8 sm:p-14 text-center">
       <FileText className="mx-auto text-muted-foreground" size={32} />
       <p className="mt-4 font-semibold">No submissions yet</p>
       <p className="text-sm text-muted-foreground mt-1">Click "New Submission" to upload your first assignment.</p>
