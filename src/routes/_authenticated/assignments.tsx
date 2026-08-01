@@ -40,7 +40,7 @@ function AssignmentsPage() {
   });
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto">
       <PageHeader
         title="My Assignments"
         subtitle="Submit, track, and review feedback on your work."
@@ -222,9 +222,10 @@ function SubmitForm({ onDone }: { onDone: () => void }) {
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); mutation.mutate(); }}
-      className="rounded-2xl bg-card border border-border p-7 mb-6 space-y-5"
+      className="rounded-2xl bg-card border border-border p-4 sm:p-7 mb-6 space-y-5"
     >
-      <div className="grid sm:grid-cols-2 gap-5">
+      <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
+
         <Input label="Title" value={title} onChange={setTitle} required />
         <Input label="Subject" value={subject} onChange={setSubject} required />
         <Input label="Semester" value={semester} onChange={setSemester} placeholder="6th" />
