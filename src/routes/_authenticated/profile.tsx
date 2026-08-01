@@ -145,12 +145,12 @@ function ProfilePage() {
 
       <section className="rounded-2xl bg-card border border-border p-5 sm:p-7 space-y-6">
         <div className="flex items-center gap-4 sm:gap-5 pb-5 border-b border-border">
-
-          <div className="relative">
+          <div className="relative shrink-0">
             {avatarUrl ? (
-              <img src={avatarUrl} alt={form.full_name || "Avatar"} className="h-20 w-20 rounded-full object-cover ring-2 ring-gold/40" />
+              <img src={avatarUrl} alt={form.full_name || "Avatar"} className="h-16 w-16 sm:h-20 sm:w-20 rounded-full object-cover ring-2 ring-gold/40" />
             ) : (
-              <div className="h-20 w-20 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] grid place-items-center text-navy-deep font-display text-2xl font-bold">
+              <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] grid place-items-center text-navy-deep font-display text-xl sm:text-2xl font-bold">
+
                 {(form.full_name || user?.email || "?")[0].toUpperCase()}
               </div>
             )}
