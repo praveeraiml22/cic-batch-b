@@ -189,7 +189,7 @@ function AssignmentsAdmin() {
               <option value="resubmission_required">resubmission_required</option>
             </select>
           </div>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto] gap-3 items-start">
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-start">
             <textarea defaultValue={a.feedback ?? ""} rows={2} placeholder="Feedback..." onBlur={(e) => e.target.value !== (a.feedback ?? "") && update(a.id, { feedback: e.target.value })}
               className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
             <input defaultValue={a.grade ?? ""} placeholder="Grade" onBlur={(e) => e.target.value !== (a.grade ?? "") && update(a.id, { grade: e.target.value })}
