@@ -95,6 +95,7 @@ function AdminPage() {
             <TabsTrigger value="coordinators" className="whitespace-nowrap">Faculty &amp; Coordinators</TabsTrigger>
             <TabsTrigger value="announcements" className="whitespace-nowrap">Notices</TabsTrigger>
             <TabsTrigger value="assignments" className="whitespace-nowrap">Assignments</TabsTrigger>
+            <TabsTrigger value="resumes" className="whitespace-nowrap">Resumes</TabsTrigger>
           </TabsList>
         </div>
 
@@ -104,6 +105,8 @@ function AdminPage() {
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
         <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
+        <TabsContent value="resumes" className="mt-6"><ResumesAdmin /></TabsContent>
+
       </Tabs>
     </div>
   );
