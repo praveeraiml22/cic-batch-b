@@ -5,6 +5,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   FileText,
+  FileBadge,
+
   FolderOpen,
   Bell,
   UserCircle,
@@ -46,10 +48,12 @@ export const Route = createFileRoute("/_authenticated")({
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/assignments", label: "Assignments", icon: FileText },
+  { to: "/resume", label: "Resume", icon: FileBadge },
   { to: "/documents", label: "Documents", icon: FolderOpen },
   { to: "/notifications", label: "Notifications", icon: Bell },
   { to: "/profile", label: "Profile", icon: UserCircle },
 ] as const;
+
 
 function AuthedLayout() {
   const { user } = useAuth();

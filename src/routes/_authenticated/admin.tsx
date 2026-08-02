@@ -3,14 +3,15 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
-import { uploadToBucket } from "@/lib/upload";
+import { uploadToBucket, formatBytes } from "@/lib/upload";
+import { listAllResumes } from "@/lib/resume.functions";
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
   const getUrl = useServerFn(getAdminFileUrl);
@@ -95,6 +96,7 @@ function AdminPage() {
             <TabsTrigger value="coordinators" className="whitespace-nowrap">Faculty &amp; Coordinators</TabsTrigger>
             <TabsTrigger value="announcements" className="whitespace-nowrap">Notices</TabsTrigger>
             <TabsTrigger value="assignments" className="whitespace-nowrap">Assignments</TabsTrigger>
+            <TabsTrigger value="resumes" className="whitespace-nowrap">Resumes</TabsTrigger>
           </TabsList>
         </div>
 
@@ -104,6 +106,8 @@ function AdminPage() {
         <TabsContent value="coordinators" className="mt-6"><CoordinatorsAdmin /></TabsContent>
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
         <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
+        <TabsContent value="resumes" className="mt-6"><ResumesAdmin /></TabsContent>
+
       </Tabs>
     </div>
   );
@@ -209,6 +213,101 @@ function AssignmentsAdmin() {
     </div>
   );
 }
+
+/* -------- Student resumes -------- */
+function ResumesAdmin() {
+  const list = useServerFn(listAllResumes);
+  const getUrl = useServerFn(getAdminFileUrl);
+  const [q, setQ] = useState("");
+  const [type, setType] = useState("all");
+  const [opening, setOpening] = useState<string | null>(null);
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["admin-resumes"],
+    queryFn: () => list({}),
+  });
+
+  const rows = (data ?? []).filter((r: any) => {
+    const ext = (r.file_name.split(".").pop() ?? "").toLowerCase();
+    if (type !== "all" && ext !== type) return false;
+    const s = q.trim().toLowerCase();
+    if (!s) return true;
+    return [r.full_name, r.email, r.student_id, r.semester, r.file_name]
+      .some((v: string) => (v ?? "").toLowerCase().includes(s));
+  });
+
+  async function preview(path: string) {
+    setOpening(path);
+    try {
+      const { url } = await getUrl({ data: { path } });
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Could not open the resume.");
+    } finally {
+      setOpening(null);
+    }
+  }
+
+  if (isLoading) return <div className="py-10 grid place-items-center"><Loader2 className="animate-spin text-muted-foreground" size={20} /></div>;
+  if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search by name, email, student ID, semester or file…"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+        />
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value)}
+          className="w-full sm:w-40 rounded-md border border-border bg-background px-3 py-2 text-sm"
+        >
+          <option value="all">All file types</option>
+          <option value="pdf">PDF</option>
+          <option value="doc">DOC</option>
+          <option value="docx">DOCX</option>
+        </select>
+      </div>
+
+      {!rows.length && <p className="text-sm text-muted-foreground text-center py-8">No resumes found.</p>}
+
+      <div className="space-y-3">
+        {rows.map((r: any) => (
+          <div key={r.id} className="rounded-xl bg-card border border-border p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="h-10 w-10 shrink-0 grid place-items-center rounded-lg bg-navy/5 text-navy">
+                <FileText size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold break-words leading-snug">{r.full_name || r.email || "Unknown student"}</p>
+                <p className="text-xs text-muted-foreground break-words mt-0.5">
+                  {[r.student_id || "—", r.semester ? `Sem ${r.semester}` : null, r.email].filter(Boolean).join(" · ")}
+                </p>
+                <p className="text-xs text-muted-foreground break-words mt-1">
+                  {r.file_name} · {formatBytes(r.file_size)} · {new Date(r.updated_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 pt-3 border-t border-border grid grid-cols-2 sm:flex gap-2">
+              <button
+                onClick={() => preview(r.file_path)}
+                disabled={opening === r.file_path}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted disabled:opacity-60"
+              >
+                {opening === r.file_path ? <Loader2 size={14} className="animate-spin" /> : <Eye size={14} />} Preview
+              </button>
+              <AdminDownloadButton path={r.file_path} name={r.file_name} />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 /* -------- Announcements -------- */
 type Audience = "public" | "all" | "selected";
