@@ -162,6 +162,15 @@ function AssignmentsAdmin() {
     if (error) toast.error(error.message);
     else { toast.success("Updated"); qc.invalidateQueries({ queryKey: ["admin-assignments"] }); }
   }
+  async function remove(a: any) {
+    if (!confirm(`Delete assignment "${a.title}"? This cannot be undone.`)) return;
+    const { error } = await supabase.from("assignments").delete().eq("id", a.id);
+    if (error) return toast.error(error.message);
+    if (a.file_url) await supabase.storage.from("cic-files").remove([a.file_url]);
+    toast.success("Assignment deleted");
+    qc.invalidateQueries({ queryKey: ["admin-assignments"] });
+  }
+
   return (
     <div className="space-y-3">
       {!data?.length && <p className="text-sm text-muted-foreground text-center py-8">No assignments submitted yet.</p>}
