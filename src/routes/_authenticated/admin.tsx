@@ -3,14 +3,15 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
-import { uploadToBucket } from "@/lib/upload";
+import { uploadToBucket, formatBytes } from "@/lib/upload";
+import { listAllResumes } from "@/lib/resume.functions";
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
   const getUrl = useServerFn(getAdminFileUrl);
