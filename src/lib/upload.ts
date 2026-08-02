@@ -56,3 +56,42 @@ export function formatBytes(n?: number | null) {
   }
   return `${v.toFixed(1)} ${units[i]}`;
 }
+
+/** Upload with real progress reporting via XHR (Supabase Storage REST). */
+export async function uploadWithProgress(
+  path: string,
+  file: File,
+  onProgress: (pct: number) => void,
+  opts?: { upsert?: boolean },
+): Promise<{ path: string }> {
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) throw new Error("You must be signed in to upload files.");
+  const base = import.meta.env.VITE_SUPABASE_URL as string;
+  const url = `${base}/storage/v1/object/cic-files/${path.split("/").map(encodeURIComponent).join("/")}`;
+
+  await new Promise<void>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string);
+    xhr.setRequestHeader("x-upsert", opts?.upsert ? "true" : "false");
+    xhr.setRequestHeader("cache-control", "3600");
+    if (file.type) xhr.setRequestHeader("content-type", file.type);
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100));
+    };
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) resolve();
+      else {
+        let msg = `Upload failed (${xhr.status})`;
+        try { msg = JSON.parse(xhr.responseText)?.message ?? msg; } catch { /* ignore */ }
+        reject(new Error(msg));
+      }
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(file);
+  });
+  onProgress(100);
+  return { path };
+}
