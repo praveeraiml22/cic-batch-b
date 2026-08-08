@@ -1,7 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Upload, FolderOpen, Download, Loader2, Plus, Search } from "lucide-react";
+import {
+  Upload,
+  FolderOpen,
+  Folder,
+  FolderPlus,
+  Download,
+  Loader2,
+  Plus,
+  Search,
+  ChevronRight,
+  FileText,
+  Home,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -21,19 +33,37 @@ const CATEGORIES = [
   { value: "misc", label: "Other" },
 ] as const;
 
+type FolderRow = { id: string; name: string; parent_id: string | null; owner_id: string };
+
 function DocumentsPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
   const [filter, setFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showFolderForm, setShowFolderForm] = useState(false);
+  const [currentId, setCurrentId] = useState<string | null>(null);
+
+  const { data: folders, isLoading: loadingFolders } = useQuery({
+    queryKey: ["document-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document_folders")
+        .select("id,name,parent_id,owner_id")
+        .order("name");
+      if (error) throw error;
+      return (data ?? []) as FolderRow[];
+    },
+  });
 
   const { data: docs, isLoading } = useQuery({
-    queryKey: ["documents"],
+    queryKey: ["documents", currentId],
+    enabled: !!currentId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("documents")
         .select("*")
+        .eq("folder_id", currentId!)
         .neq("category", "assignments")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -41,68 +71,264 @@ function DocumentsPage() {
     },
   });
 
+  const all = folders ?? [];
+  const byId = new Map(all.map((f) => [f.id, f]));
+  const children = all.filter((f) => f.parent_id === currentId);
+
+  const breadcrumbs: FolderRow[] = [];
+  let cursor = currentId ? byId.get(currentId) : undefined;
+  while (cursor) {
+    breadcrumbs.unshift(cursor);
+    cursor = cursor.parent_id ? byId.get(cursor.parent_id) : undefined;
+  }
+
+  const q = search.toLowerCase();
+  const visibleFolders = children.filter((f) => !q || f.name.toLowerCase().includes(q));
   const filtered = (docs ?? []).filter((d) => {
     const matchCat = filter === "all" || d.category === filter;
-    const q = search.toLowerCase();
-    const matchSearch = !q || d.title.toLowerCase().includes(q) || (d.description ?? "").toLowerCase().includes(q);
+    const matchSearch =
+      !q || d.title.toLowerCase().includes(q) || (d.description ?? "").toLowerCase().includes(q);
     return matchCat && matchSearch;
   });
+
+  function refresh() {
+    qc.invalidateQueries({ queryKey: ["documents"] });
+    qc.invalidateQueries({ queryKey: ["document-folders"] });
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto">
       <PageHeader
         title="Document Library"
-        subtitle="Browse, search, and upload course materials and references."
+        subtitle="Organise files in folders — open a folder to upload, view, or download its documents."
         action={
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            className="inline-flex items-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition"
-          >
-            <Plus size={16} /> Upload
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { setShowFolderForm((s) => !s); setShowForm(false); }}
+              className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 sm:px-5 py-2.5 text-sm font-semibold hover:border-gold transition"
+            >
+              <FolderPlus size={16} /> New folder
+            </button>
+            <button
+              onClick={() => {
+                if (!currentId) {
+                  toast.error("Open or create a folder first — files must be stored inside a folder.");
+                  return;
+                }
+                setShowForm((s) => !s);
+                setShowFolderForm(false);
+              }}
+              disabled={!currentId}
+              title={currentId ? "Upload to this folder" : "Select a folder first"}
+              className="inline-flex items-center gap-2 rounded-full bg-navy text-white px-4 sm:px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Plus size={16} /> Upload
+            </button>
+          </div>
         }
       />
 
-      {showForm && (
-        <UploadForm onDone={() => { setShowForm(false); qc.invalidateQueries({ queryKey: ["documents"] }); }} />
+      {/* Breadcrumbs */}
+      <nav aria-label="Folder path" className="mb-5 flex flex-wrap items-center gap-1 text-sm">
+        <button
+          onClick={() => setCurrentId(null)}
+          className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-semibold transition ${
+            currentId === null ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Home size={14} /> All folders
+        </button>
+        {breadcrumbs.map((b) => (
+          <span key={b.id} className="flex items-center gap-1 min-w-0">
+            <ChevronRight size={14} className="shrink-0 text-muted-foreground" />
+            <button
+              onClick={() => setCurrentId(b.id)}
+              className={`truncate max-w-[10rem] rounded-md px-2 py-1 font-semibold transition ${
+                currentId === b.id ? "text-foreground" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {b.name}
+            </button>
+          </span>
+        ))}
+      </nav>
+
+      {showFolderForm && (
+        <FolderForm
+          parentId={currentId}
+          onDone={() => { setShowFolderForm(false); refresh(); }}
+        />
+      )}
+
+      {showForm && currentId && (
+        <UploadForm folderId={currentId} onDone={() => { setShowForm(false); refresh(); }} />
       )}
 
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
-            placeholder="Search documents..." value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search this folder..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
             className="w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2 text-sm focus:border-gold focus:ring-2 focus:ring-gold/30 outline-none"
           />
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {CATEGORIES.map((c) => (
-            <button
-              key={c.value}
-              onClick={() => setFilter(c.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
-                filter === c.value ? "bg-navy text-white" : "bg-card border border-border text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {c.label}
-            </button>
-          ))}
-        </div>
+        {currentId && (
+          <div className="flex flex-wrap gap-1.5">
+            {CATEGORIES.map((c) => (
+              <button
+                key={c.value}
+                onClick={() => setFilter(c.value)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                  filter === c.value
+                    ? "bg-navy text-white"
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {isLoading ? (
-        <div className="grid place-items-center py-20"><Loader2 className="animate-spin" /></div>
+      {/* Folders */}
+      {loadingFolders ? (
+        <div className="grid place-items-center py-16"><Loader2 className="animate-spin" /></div>
+      ) : visibleFolders.length > 0 ? (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-8">
+          {visibleFolders.map((f) => (
+            <FolderCard
+              key={f.id}
+              f={f}
+              ownerId={user?.id}
+              onOpen={() => { setCurrentId(f.id); setSearch(""); }}
+              onChanged={refresh}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {/* Files */}
+      {!currentId ? (
+        !loadingFolders && visibleFolders.length === 0 ? (
+          <div className="rounded-2xl border-2 border-dashed border-border p-10 sm:p-14 text-center">
+            <FolderPlus className="mx-auto text-muted-foreground" size={32} />
+            <p className="mt-4 font-semibold">No folders yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Create a folder first — every file must live inside one.
+            </p>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">Select a folder to view and download its files.</p>
+        )
+      ) : isLoading ? (
+        <div className="grid place-items-center py-16"><Loader2 className="animate-spin" /></div>
       ) : !filtered.length ? (
-        <div className="rounded-2xl border-2 border-dashed border-border p-14 text-center">
+        <div className="rounded-2xl border-2 border-dashed border-border p-10 sm:p-14 text-center">
           <FolderOpen className="mx-auto text-muted-foreground" size={32} />
-          <p className="mt-4 font-semibold">No documents found</p>
+          <p className="mt-4 font-semibold">No documents in this folder</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((d) => <DocCard key={d.id} d={d} ownerId={user?.id} onChanged={() => qc.invalidateQueries({ queryKey: ["documents"] })} />)}
+          {filtered.map((d) => (
+            <DocCard key={d.id} d={d} ownerId={user?.id} onChanged={refresh} />
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+function FolderCard({
+  f,
+  ownerId,
+  onOpen,
+  onChanged,
+}: {
+  f: FolderRow;
+  ownerId?: string;
+  onOpen: () => void;
+  onChanged: () => void;
+}) {
+  async function rename() {
+    const name = prompt("Rename folder", f.name)?.trim();
+    if (!name || name === f.name) return;
+    const { error } = await supabase.from("document_folders").update({ name }).eq("id", f.id);
+    if (error) toast.error(error.message);
+    else { toast.success("Folder renamed"); onChanged(); }
+  }
+  async function remove() {
+    if (!confirm("Delete this folder, its subfolders and all files inside?")) return;
+    const { error } = await supabase.from("document_folders").delete().eq("id", f.id);
+    if (error) toast.error(error.message);
+    else { toast.success("Folder deleted"); onChanged(); }
+  }
+  return (
+    <div className="rounded-2xl bg-card border border-border p-4 sm:p-5 hover:border-gold/40 transition">
+      <button onClick={onOpen} className="w-full text-left flex items-center gap-3 min-w-0">
+        <span className="h-11 w-11 shrink-0 rounded-xl bg-navy/10 text-navy grid place-items-center">
+          <Folder size={18} />
+        </span>
+        <span className="min-w-0">
+          <span className="block font-semibold text-foreground truncate">{f.name}</span>
+          <span className="block text-xs text-muted-foreground">Open folder</span>
+        </span>
+      </button>
+      {ownerId === f.owner_id && (
+        <div className="mt-4 flex items-center gap-2">
+          <button onClick={rename} className="flex-1 rounded-md border border-border py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition">
+            Rename
+          </button>
+          <button onClick={remove} className="flex-1 rounded-md border border-border py-1.5 text-xs font-semibold text-muted-foreground hover:text-rose-600 transition">
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function FolderForm({ parentId, onDone }: { parentId: string | null; onDone: () => void }) {
+  const { user } = useAuth();
+  const [name, setName] = useState("");
+
+  const m = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error("You must be signed in");
+      const { error } = await supabase
+        .from("document_folders")
+        .insert({ name: name.trim(), parent_id: parentId, owner_id: user.id });
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Folder created"); setName(""); onDone(); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <form
+      onSubmit={(e) => { e.preventDefault(); m.mutate(); }}
+      className="rounded-2xl bg-card border border-border p-5 sm:p-7 mb-6 flex flex-col sm:flex-row sm:items-end gap-4"
+    >
+      <div className="flex-1 min-w-0">
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {parentId ? "New subfolder name" : "New folder name"}
+        </label>
+        <input
+          required value={name} onChange={(e) => setName(e.target.value)}
+          placeholder="e.g. Semester 5 / Structural Analysis"
+          className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30"
+        />
+      </div>
+      <button
+        disabled={m.isPending}
+        className="inline-flex items-center justify-center gap-2 rounded-full bg-navy text-white px-6 py-2.5 text-sm font-semibold disabled:opacity-50"
+      >
+        {m.isPending ? <Loader2 className="animate-spin" size={16} /> : <FolderPlus size={16} />}
+        Create
+      </button>
+    </form>
   );
 }
 
@@ -121,6 +347,14 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
       setBusy(false);
     }
   }
+  async function view() {
+    try {
+      const url = await getSignedUrl(d.file_url);
+      window.open(url, "_blank", "noopener,noreferrer");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not open file");
+    }
+  }
   async function remove() {
     if (!confirm("Delete this document?")) return;
     const { error } = await supabase.from("documents").delete().eq("id", d.id);
@@ -128,26 +362,33 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
     else { toast.success("Deleted"); onChanged(); }
   }
   return (
-    <div className="rounded-2xl bg-card border border-border p-6 hover:border-gold/40 transition flex flex-col">
+    <div className="rounded-2xl bg-card border border-border p-5 sm:p-6 hover:border-gold/40 transition flex flex-col">
       <div className="h-11 w-11 rounded-xl bg-gold/15 text-[oklch(0.55_0.13_75)] grid place-items-center mb-4">
-        <FolderOpen size={18} />
+        <FileText size={18} />
       </div>
       <p className="font-semibold text-foreground line-clamp-1">{d.title}</p>
-      <p className="text-xs text-muted-foreground mt-1 capitalize">{d.category.replace(/_/g, " ")} · {formatBytes(d.file_size)}</p>
+      <p className="text-xs text-muted-foreground mt-1 capitalize">
+        {d.category.replace(/_/g, " ")} · {formatBytes(d.file_size)}
+      </p>
       {d.description && <p className="text-sm text-muted-foreground mt-3 line-clamp-2">{d.description}</p>}
-      <div className="mt-5 flex items-center gap-2">
-        <button onClick={download} disabled={busy} className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-navy text-white py-2 text-xs font-semibold hover:bg-navy-deep transition disabled:opacity-60">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <button onClick={view} className="rounded-md border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground transition">
+          View
+        </button>
+        <button onClick={download} disabled={busy} className="flex-1 min-w-[7rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-navy text-white py-2 text-xs font-semibold hover:bg-navy-deep transition disabled:opacity-60">
           {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} {busy ? "Downloading…" : "Download"}
         </button>
         {ownerId === d.uploaded_by && (
-          <button onClick={remove} className="px-3 py-2 rounded-md border border-border text-xs text-muted-foreground hover:text-rose-600 transition">Delete</button>
+          <button onClick={remove} className="px-3 py-2 rounded-md border border-border text-xs text-muted-foreground hover:text-rose-600 transition">
+            Delete
+          </button>
         )}
       </div>
     </div>
   );
 }
 
-function UploadForm({ onDone }: { onDone: () => void }) {
+function UploadForm({ folderId, onDone }: { folderId: string; onDone: () => void }) {
   const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -157,11 +398,12 @@ function UploadForm({ onDone }: { onDone: () => void }) {
   const m = useMutation({
     mutationFn: async () => {
       if (!user || !file) throw new Error("Missing file");
+      if (!folderId) throw new Error("Select a folder before uploading");
       const { path } = await uploadToBucket(user.id, file, "documents");
       const { error } = await supabase.from("documents").insert({
         title, description, category: category as any,
         file_url: path, file_name: file.name, file_size: file.size,
-        uploaded_by: user.id,
+        uploaded_by: user.id, folder_id: folderId,
       });
       if (error) throw error;
     },
@@ -170,7 +412,7 @@ function UploadForm({ onDone }: { onDone: () => void }) {
   });
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); m.mutate(); }} className="rounded-2xl bg-card border border-border p-7 mb-6 grid sm:grid-cols-2 gap-5">
+    <form onSubmit={(e) => { e.preventDefault(); m.mutate(); }} className="rounded-2xl bg-card border border-border p-5 sm:p-7 mb-6 grid sm:grid-cols-2 gap-5">
       <div className="sm:col-span-2">
         <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</label>
         <input required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm outline-none focus:border-gold focus:ring-2 focus:ring-gold/30" />

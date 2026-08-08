@@ -152,6 +152,41 @@ export type Database = {
         }
         Relationships: []
       }
+      document_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          owner_id: string
+          parent_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          owner_id: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          owner_id?: string
+          parent_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documents: {
         Row: {
           category: Database["public"]["Enums"]["document_category"]
@@ -160,6 +195,7 @@ export type Database = {
           file_name: string
           file_size: number | null
           file_url: string
+          folder_id: string
           id: string
           tags: string[] | null
           title: string
@@ -173,6 +209,7 @@ export type Database = {
           file_name: string
           file_size?: number | null
           file_url: string
+          folder_id: string
           id?: string
           tags?: string[] | null
           title: string
@@ -186,13 +223,22 @@ export type Database = {
           file_name?: string
           file_size?: number | null
           file_url?: string
+          folder_id?: string
           id?: string
           tags?: string[] | null
           title?: string
           uploaded_by?: string
           version?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documents_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "document_folders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {
