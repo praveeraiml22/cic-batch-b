@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye } from "lucide-react";
+import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye, Search, Folder } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -141,9 +141,25 @@ function StatsAdmin() {
   );
 }
 
-/* -------- Assignments review -------- */
+/* -------- Assignments review (grouped into per-student folders) -------- */
 function AssignmentsAdmin() {
   const qc = useQueryClient();
+  const [openFolder, setOpenFolder] = useState<string | null>(null);
+  const [q, setQ] = useState("");
+
+  const { data: folders } = useQuery({
+    queryKey: ["assignment-folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("document_folders")
+        .select("id,name,username,owner_id")
+        .eq("kind", "assignment")
+        .order("name");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   const { data } = useQuery({
     queryKey: ["admin-assignments"],
     queryFn: async () => {
@@ -161,6 +177,7 @@ function AssignmentsAdmin() {
       return (assignments ?? []).map((a) => ({ ...a, profiles: profiles.find((p) => p.id === a.submitted_by) }));
     },
   });
+
   async function update(id: string, patch: any) {
     const { error } = await supabase.from("assignments").update(patch).eq("id", id);
     if (error) toast.error(error.message);
@@ -175,10 +192,63 @@ function AssignmentsAdmin() {
     qc.invalidateQueries({ queryKey: ["admin-assignments"] });
   }
 
+  const term = q.trim().toLowerCase();
+  const countFor = (ownerId: string) => (data ?? []).filter((a: any) => a.submitted_by === ownerId).length;
+  const visibleFolders = (folders ?? []).filter((f: any) =>
+    !term || (f.username ?? f.name ?? "").toLowerCase().includes(term),
+  );
+  const current = (folders ?? []).find((f: any) => f.id === openFolder);
+  const items = current ? (data ?? []).filter((a: any) => a.submitted_by === current.owner_id) : [];
+
+  if (!openFolder) {
+    return (
+      <div className="space-y-4">
+        <div className="relative max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search student username..."
+            className="w-full rounded-lg border border-border bg-card pl-9 pr-3 py-2 text-sm outline-none focus:border-gold"
+          />
+        </div>
+        {!visibleFolders.length && (
+          <p className="text-sm text-muted-foreground text-center py-8">No student folders found.</p>
+        )}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {visibleFolders.map((f: any) => (
+            <button
+              key={f.id}
+              onClick={() => setOpenFolder(f.id)}
+              className="rounded-xl bg-card border border-border p-4 text-left flex items-center gap-3 hover:border-gold/50 transition min-w-0"
+            >
+              <span className="h-10 w-10 shrink-0 rounded-lg bg-navy/10 text-navy grid place-items-center">
+                <Folder size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-semibold truncate">{f.username ?? f.name}</span>
+                <span className="block text-xs text-muted-foreground">
+                  {countFor(f.owner_id)} assignment{countFor(f.owner_id) === 1 ? "" : "s"}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
-      {!data?.length && <p className="text-sm text-muted-foreground text-center py-8">No assignments submitted yet.</p>}
-      {data?.map((a: any) => (
+      <div className="flex items-center gap-2 text-sm">
+        <button onClick={() => setOpenFolder(null)} className="text-muted-foreground hover:text-foreground font-semibold">
+          Student folders
+        </button>
+        <span className="text-muted-foreground">/</span>
+        <span className="font-semibold truncate">{current?.username ?? current?.name}</span>
+      </div>
+      {!items.length && <p className="text-sm text-muted-foreground text-center py-8">No assignments in this folder.</p>}
+      {items.map((a: any) => (
         <div key={a.id} className="rounded-xl bg-card border border-border p-4 sm:p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
             <div className="min-w-0">

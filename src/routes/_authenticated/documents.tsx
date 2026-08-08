@@ -50,6 +50,7 @@ function DocumentsPage() {
       const { data, error } = await supabase
         .from("document_folders")
         .select("id,name,parent_id,owner_id")
+        .eq("kind", "user")
         .order("name");
       if (error) throw error;
       return (data ?? []) as FolderRow[];
