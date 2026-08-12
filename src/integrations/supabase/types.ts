@@ -366,6 +366,87 @@ export type Database = {
         }
         Relationships: []
       }
+      push_config: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          endpoint_url: string
+          id: boolean
+          updated_at: string
+          webhook_secret: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          endpoint_url: string
+          id?: boolean
+          updated_at?: string
+          webhook_secret: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          endpoint_url?: string
+          id?: boolean
+          updated_at?: string
+          webhook_secret?: string
+        }
+        Relationships: []
+      }
+      push_notification_logs: {
+        Row: {
+          body: string | null
+          created_at: string
+          dedupe_key: string
+          error: string | null
+          event_type: string
+          id: string
+          is_broadcast: boolean
+          link: string | null
+          response: Json | null
+          source_id: string | null
+          source_table: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          dedupe_key: string
+          error?: string | null
+          event_type: string
+          id?: string
+          is_broadcast?: boolean
+          link?: string | null
+          response?: Json | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          dedupe_key?: string
+          error?: string | null
+          event_type?: string
+          id?: string
+          is_broadcast?: boolean
+          link?: string | null
+          response?: Json | null
+          source_id?: string | null
+          source_table?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       resumes: {
         Row: {
           created_at: string
@@ -464,6 +545,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      enqueue_push: {
+        Args: {
+          _body: string
+          _dedupe_key: string
+          _event_type: string
+          _is_broadcast: boolean
+          _link: string
+          _source_id: string
+          _source_table: string
+          _title: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
