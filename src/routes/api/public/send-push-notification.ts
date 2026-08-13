@@ -94,8 +94,8 @@ export const Route = createFileRoute("/api/public/send-push-notification")({
               _source_table: sourceTable,
               _source_id: sourceId,
               _status: status,
-              _onesignal_id: onesignalId,
-              _error: error,
+              _onesignal_id: onesignalId as string,
+              _error: error as string,
             });
           }
         };
