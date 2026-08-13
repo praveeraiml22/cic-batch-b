@@ -411,19 +411,28 @@ function AnnouncementsAdmin() {
           .select().single();
         if (error) throw error;
         if (audience === "all" && members?.length) {
-          const rows = members.map((u: any) => ({ user_id: u.id, title: ann.title, message: ann.description }));
+          // In-app inbox copies only — the broadcast push is sent once by the
+          // announcement itself, so these rows must not push again.
+          const rows = members.map((u: any) => ({ user_id: u.id, title: ann.title, message: ann.description, push_enabled: false }));
           const { error: nerr } = await supabase.from("notifications").insert(rows);
           if (nerr) throw nerr;
         }
       } else {
-        // Targeted: notification only, no public announcement.
-        const rows = selected.map((id) => ({ user_id: id, title: f.title, message: f.description }));
+        // Targeted: notification only, no public announcement. Each row pushes
+        // to that member's devices via the database trigger.
+        const rows = selected.map((id) => ({ user_id: id, title: f.title, message: f.description, push_enabled: true }));
         const { error } = await supabase.from("notifications").insert(rows);
         if (error) throw error;
       }
     },
     onSuccess: () => {
-      toast.success(audience === "selected" ? `Notice sent to ${selected.length} member(s)` : "Posted");
+      toast.success(
+        audience === "public"
+          ? "Posted to the notice board."
+          : audience === "all"
+            ? "Broadcast posted. Push notification is being delivered."
+            : `Notice sent to ${selected.length} member(s). Push notification is being delivered.`,
+      );
       setF({ title: "", description: "" });
       setSelected([]); setSearch(""); setAudience("public");
       qc.invalidateQueries({ queryKey: ["admin-announcements"] });
