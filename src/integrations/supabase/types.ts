@@ -21,6 +21,11 @@ export type Database = {
           description: string | null
           id: string
           is_broadcast: boolean
+          notification_attempts: number
+          notification_error: string | null
+          notification_sent_at: string | null
+          notification_status: string
+          onesignal_notification_id: string | null
           title: string
         }
         Insert: {
@@ -29,6 +34,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_broadcast?: boolean
+          notification_attempts?: number
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          notification_status?: string
+          onesignal_notification_id?: string | null
           title: string
         }
         Update: {
@@ -37,6 +47,11 @@ export type Database = {
           description?: string | null
           id?: string
           is_broadcast?: boolean
+          notification_attempts?: number
+          notification_error?: string | null
+          notification_sent_at?: string | null
+          notification_status?: string
+          onesignal_notification_id?: string | null
           title?: string
         }
         Relationships: []
@@ -286,6 +301,7 @@ export type Database = {
           is_read: boolean
           link: string | null
           message: string | null
+          push_enabled: boolean
           title: string
           user_id: string
         }
@@ -295,6 +311,7 @@ export type Database = {
           is_read?: boolean
           link?: string | null
           message?: string | null
+          push_enabled?: boolean
           title: string
           user_id: string
         }
@@ -304,6 +321,7 @@ export type Database = {
           is_read?: boolean
           link?: string | null
           message?: string | null
+          push_enabled?: boolean
           title?: string
           user_id?: string
         }
@@ -545,6 +563,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_push_log: { Args: { _log_id: string }; Returns: boolean }
       enqueue_push: {
         Args: {
           _body: string
@@ -574,6 +593,16 @@ export type Database = {
           _new: string
           _old: string
           _target: string
+        }
+        Returns: undefined
+      }
+      sync_push_result: {
+        Args: {
+          _error: string
+          _onesignal_id: string
+          _source_id: string
+          _source_table: string
+          _status: string
         }
         Returns: undefined
       }
