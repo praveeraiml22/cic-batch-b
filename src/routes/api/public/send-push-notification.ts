@@ -172,6 +172,12 @@ export const Route = createFileRoute("/api/public/send-push-notification")({
           target_channel: "push",
           headings: { en: payload.title },
           contents: { en: payload.body ?? payload.title },
+          // CIC brand logo shown next to (and expanded under) the message.
+          large_icon: LOGO_URL,
+          big_picture: LOGO_URL,
+          chrome_web_icon: LOGO_URL,
+          chrome_web_image: LOGO_URL,
+          firefox_icon: LOGO_URL,
           data: {
             type: "broadcast",
             source: "CIC",
