@@ -3,6 +3,9 @@ import { z } from "zod";
 
 export const ONESIGNAL_APP_ID = "16a361c6-cc92-458c-8ecd-8e50a1509c0c";
 
+// Absolute URL is required: OneSignal fetches the image itself.
+const LOGO_URL = "https://cic-batch-b.lovable.app/__l5e/assets-v1/5d09a45e-7cb6-483d-b9ca-855818dde49e/cic-logo.png";
+
 const PayloadSchema = z.object({
   log_id: z.string().uuid().optional(),
   event_type: z.string().min(1),
@@ -172,6 +175,12 @@ export const Route = createFileRoute("/api/public/send-push-notification")({
           target_channel: "push",
           headings: { en: payload.title },
           contents: { en: payload.body ?? payload.title },
+          // CIC brand logo shown next to (and expanded under) the message.
+          large_icon: LOGO_URL,
+          big_picture: LOGO_URL,
+          chrome_web_icon: LOGO_URL,
+          chrome_web_image: LOGO_URL,
+          firefox_icon: LOGO_URL,
           data: {
             type: "broadcast",
             source: "CIC",
