@@ -121,11 +121,51 @@ export const Route = createFileRoute("/api/public/send-push-notification")({
           }
         }
 
-        // Never mix segments with alias targeting in one request.
-        const targeting =
-          payload.is_broadcast || !payload.user_id
-            ? { included_segments: ["Subscribed Users"] }
-            : { include_aliases: { external_id: [payload.user_id] } };
+        // OneSignal's built-in "Subscribed Users" segment can lag behind valid
+        // Android subscriptions (and was resolving to zero recipients here).
+        // Resolve every valid subscription explicitly for reliable broadcasts.
+        let targeting: Record<string, unknown>;
+        if (payload.is_broadcast || !payload.user_id) {
+          const subscriptionIds: string[] = [];
+          const pageSize = 300;
+
+          for (let offset = 0; offset < 20_000; offset += pageSize) {
+            const subscriptionsResponse = await fetch(
+              `https://api.onesignal.com/players?app_id=${ONESIGNAL_APP_ID}&limit=${pageSize}&offset=${offset}`,
+              { headers: { Authorization: `Key ${restKey}` } },
+            );
+
+            if (!subscriptionsResponse.ok) {
+              const reason = `Unable to resolve OneSignal broadcast audience (HTTP ${subscriptionsResponse.status})`;
+              console.error(`[ONESIGNAL ERROR] ${reason}`);
+              await finish("retry", reason, null);
+              return Response.json({ ok: false, error: reason }, { status: 502 });
+            }
+
+            const subscriptions = (await subscriptionsResponse.json()) as {
+              players?: Array<{ id?: string; invalid_identifier?: boolean }>;
+            };
+            const page = subscriptions.players ?? [];
+            for (const subscription of page) {
+              if (subscription.id && subscription.invalid_identifier !== true) {
+                subscriptionIds.push(subscription.id);
+              }
+            }
+            if (page.length < pageSize) break;
+          }
+
+          if (subscriptionIds.length === 0) {
+            const reason = "No valid OneSignal subscriptions are registered for this app";
+            console.error(`[ONESIGNAL ERROR] ${reason}`);
+            await finish("no_recipients", reason, null);
+            return Response.json({ ok: false, error: reason, recipients: 0 });
+          }
+
+          console.log(`[BROADCAST] Resolved ${subscriptionIds.length} valid subscriptions`);
+          targeting = { include_subscription_ids: subscriptionIds };
+        } else {
+          targeting = { include_aliases: { external_id: [payload.user_id] } };
+        }
 
         const notification = {
           app_id: ONESIGNAL_APP_ID,
