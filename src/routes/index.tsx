@@ -479,6 +479,45 @@ function PersonCard({
 
 /* ---------- CONTACT ---------- */
 function Contact() {
+  const submitContact = useServerFn(sendContactMessage);
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (status === "sending") return; // block duplicate submits
+
+    const form = e.currentTarget;
+    const fd = new FormData(form);
+    const payload = {
+      name: String(fd.get("name") ?? "").trim(),
+      email: String(fd.get("email") ?? "").trim(),
+      subject: String(fd.get("subject") ?? "").trim(),
+      message: String(fd.get("message") ?? "").trim(),
+    };
+
+    if (!payload.name || !payload.email || !payload.subject || !payload.message) {
+      setStatus("error");
+      setErrorMessage("Please fill in every field before sending.");
+      return;
+    }
+
+    setStatus("sending");
+    setErrorMessage(null);
+    try {
+      await submitContact({ data: payload });
+      setStatus("sent");
+      form.reset();
+    } catch (err) {
+      setStatus("error");
+      setErrorMessage(
+        err instanceof Error && err.message
+          ? err.message
+          : "We could not send your message. Please try again.",
+      );
+    }
+  };
+
   return (
     <section id="contact" className="py-16 sm:py-24 lg:py-32">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 grid lg:grid-cols-[1fr_1fr] gap-12">
