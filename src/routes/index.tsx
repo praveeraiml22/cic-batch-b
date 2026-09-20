@@ -573,21 +573,22 @@ function Contact() {
         </div>
 
         <form
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={handleSubmit}
           className="rounded-3xl bg-card border border-border p-6 sm:p-8 lg:p-10 shadow-elegant"
         >
           <div className="grid sm:grid-cols-2 gap-5">
-            <Field label="Full Name" placeholder="Aarav Patel" />
-            <Field label="Email" type="email" placeholder="you@mnnit.ac.in" />
+            <Field name="name" label="Full Name" placeholder="Aarav Patel" />
+            <Field name="email" label="Email" type="email" placeholder="you@mnnit.ac.in" />
           </div>
           <div className="mt-5">
-            <Field label="Subject" placeholder="Collaboration enquiry" />
+            <Field name="subject" label="Subject" placeholder="Collaboration enquiry" />
           </div>
           <div className="mt-5">
             <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Message
             </label>
             <textarea
+              name="message"
               rows={5}
               placeholder="Tell us a bit about your idea..."
               className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 transition resize-none"
@@ -595,11 +596,21 @@ function Contact() {
           </div>
           <button
             type="submit"
-            className="mt-6 group inline-flex items-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-white hover:bg-navy-deep transition w-full sm:w-auto justify-center"
+            disabled={status === "sending"}
+            className="mt-6 group inline-flex items-center gap-2 rounded-full bg-navy px-7 py-3.5 text-sm font-semibold text-white hover:bg-navy-deep transition w-full sm:w-auto justify-center disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            Send Message
+            {status === "sending" ? "Sending..." : "Send Message"}
             <Send size={15} className="group-hover:translate-x-0.5 transition-transform" />
           </button>
+
+          {status === "sent" && (
+            <p className="mt-4 text-sm font-medium text-green-600">
+              Your message has been sent successfully.
+            </p>
+          )}
+          {status === "error" && errorMessage && (
+            <p className="mt-4 text-sm font-medium text-destructive">{errorMessage}</p>
+          )}
         </form>
       </div>
     </section>
@@ -610,10 +621,12 @@ function Field({
   label,
   type = "text",
   placeholder,
+  name,
 }: {
   label: string;
   type?: string;
   placeholder?: string;
+  name?: string;
 }) {
   return (
     <div>
@@ -622,6 +635,7 @@ function Field({
       </label>
       <input
         type={type}
+        name={name}
         placeholder={placeholder}
         className="mt-2 w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-gold focus:ring-2 focus:ring-gold/30 transition"
       />
