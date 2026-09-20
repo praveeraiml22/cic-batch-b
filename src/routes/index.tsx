@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { sendContactMessage } from "@/lib/contact.functions";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import {
