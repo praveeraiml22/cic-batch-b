@@ -630,6 +630,12 @@ function Footer() {
           <p>© {new Date().getFullYear()} Civil Innovation Club, MNNIT Allahabad. All rights reserved.</p>
           <p className="uppercase tracking-[0.2em] text-gold-soft">Innovating Infrastructure</p>
         </div>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10 pb-5 text-xs text-white/50">
+          <p>
+            Created by: <span className="text-white/80 font-medium">Praveer Pratap (20231074)</span>, CIC Coordinator,
+            MNNIT Allahabad
+          </p>
+        </div>
       </div>
     </footer>
   );
