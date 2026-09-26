@@ -7,6 +7,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
 import { ensureMemberAccount, getCurrentAccount } from "@/lib/account.functions";
+import { signInWithStudentId } from "@/lib/auth.functions";
 import { toast } from "sonner";
 import { friendlyAuthError, logAuthError } from "@/lib/auth-log";
 const cicLogo = { url: "/cic-logo.png" };
@@ -23,6 +24,11 @@ export const Route = createFileRoute("/auth")({
 
 const signInSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const studentIdSignInSchema = z.object({
+  studentId: z.string().trim().min(1, "Student ID is required"),
   password: z.string().min(1, "Password is required"),
 });
 
