@@ -50,6 +50,7 @@ function AuthPage() {
   const ensureAccount = useServerFn(ensureMemberAccount);
   const fetchAccount = useServerFn(getCurrentAccount);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [signInMethod, setSignInMethod] = useState<"email" | "studentId">("email");
   const [loading, setLoading] = useState(false);
   
   const [resetLoading, setResetLoading] = useState(false);
@@ -106,6 +107,19 @@ function AuthPage() {
         const fieldErrs: FieldErrors = {};
         for (const issue of parsed.error.issues) {
           const k = issue.path[0] as keyof FieldErrors;
+          if (!fieldErrs[k]) fieldErrs[k] = issue.message;
+        }
+        setErrors(fieldErrs);
+        setAnnouncement(Object.values(fieldErrs).join(". "));
+        focusFirstError(fieldErrs);
+        return;
+      }
+    } else if (signInMethod === "studentId") {
+      const parsed = studentIdSignInSchema.safeParse({ studentId: studentId.trim(), password });
+      if (!parsed.success) {
+        const fieldErrs: FieldErrors = {};
+        for (const issue of parsed.error.issues) {
+          const k = issue.path[0] === "studentId" ? "studentId" : "password";
           if (!fieldErrs[k]) fieldErrs[k] = issue.message;
         }
         setErrors(fieldErrs);
