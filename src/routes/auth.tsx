@@ -7,6 +7,7 @@ import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 
 import { ensureMemberAccount, getCurrentAccount } from "@/lib/account.functions";
+import { signInWithStudentId } from "@/lib/auth.functions";
 import { toast } from "sonner";
 import { friendlyAuthError, logAuthError } from "@/lib/auth-log";
 const cicLogo = { url: "/cic-logo.png" };
@@ -23,6 +24,11 @@ export const Route = createFileRoute("/auth")({
 
 const signInSchema = z.object({
   email: z.string().trim().min(1, "Email is required").email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+const studentIdSignInSchema = z.object({
+  studentId: z.string().trim().min(1, "Student ID is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -43,7 +49,9 @@ function AuthPage() {
   const navigate = useNavigate();
   const ensureAccount = useServerFn(ensureMemberAccount);
   const fetchAccount = useServerFn(getCurrentAccount);
+  const signInStudentId = useServerFn(signInWithStudentId);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [signInMethod, setSignInMethod] = useState<"email" | "studentId">("email");
   const [loading, setLoading] = useState(false);
   
   const [resetLoading, setResetLoading] = useState(false);
@@ -107,6 +115,19 @@ function AuthPage() {
         focusFirstError(fieldErrs);
         return;
       }
+    } else if (signInMethod === "studentId") {
+      const parsed = studentIdSignInSchema.safeParse({ studentId: studentId.trim(), password });
+      if (!parsed.success) {
+        const fieldErrs: FieldErrors = {};
+        for (const issue of parsed.error.issues) {
+          const k = issue.path[0] === "studentId" ? "studentId" : "password";
+          if (!fieldErrs[k]) fieldErrs[k] = issue.message;
+        }
+        setErrors(fieldErrs);
+        setAnnouncement(Object.values(fieldErrs).join(". "));
+        focusFirstError(fieldErrs);
+        return;
+      }
     } else {
       const parsed = signInSchema.safeParse({ email: normalizedEmail, password });
       if (!parsed.success) {
@@ -144,6 +165,15 @@ function AuthPage() {
           setAnnouncement("Account created. Please verify your email.");
           setMode("signin");
         }
+      } else if (signInMethod === "studentId") {
+        const result = await signInStudentId({ data: { studentId: studentId.trim(), password } });
+        if (!result.ok) throw new Error(result.error);
+        const { error: sessionError } = await supabase.auth.setSession(result.session);
+        if (sessionError) throw sessionError;
+        await ensureAccount({});
+        toast.success("Signed in successfully.");
+        setAnnouncement("Signed in successfully.");
+        await redirectByRole();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
@@ -257,16 +287,50 @@ function AuthPage() {
                 />
               </>
             )}
-            <AuthField
-              ref={refs.email}
-              icon={<Mail size={16} />}
-              label="Email"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              error={errors.email}
-              required
-            />
+            {mode === "signin" && signInMethod === "studentId" ? (
+              <AuthField
+                ref={refs.studentId}
+                icon={<Hash size={16} />}
+                label="Student ID"
+                value={studentId}
+                onChange={setStudentId}
+                placeholder="20231234"
+                error={errors.studentId}
+                required
+              />
+            ) : (
+              <AuthField
+                ref={refs.email}
+                icon={<Mail size={16} />}
+                label="Email"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                error={errors.email}
+                required
+              />
+            )}
+            {mode === "signin" && (
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSignInMethod(signInMethod === "email" ? "studentId" : "email");
+                  setErrors({});
+                }}
+                className="w-full text-xs font-medium text-navy hover:text-gold transition"
+              >
+                {signInMethod === "email"
+                  ? "Sign in with Student ID instead"
+                  : "Sign in with Email instead"}
+              </button>
+            )}
             <AuthField
               ref={refs.password}
               icon={<Lock size={16} />}
