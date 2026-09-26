@@ -49,6 +49,7 @@ function AuthPage() {
   const navigate = useNavigate();
   const ensureAccount = useServerFn(ensureMemberAccount);
   const fetchAccount = useServerFn(getCurrentAccount);
+  const signInStudentId = useServerFn(signInWithStudentId);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [signInMethod, setSignInMethod] = useState<"email" | "studentId">("email");
   const [loading, setLoading] = useState(false);
@@ -164,6 +165,15 @@ function AuthPage() {
           setAnnouncement("Account created. Please verify your email.");
           setMode("signin");
         }
+      } else if (signInMethod === "studentId") {
+        const result = await signInStudentId({ data: { studentId: studentId.trim(), password } });
+        if (!result.ok) throw new Error(result.error);
+        const { error: sessionError } = await supabase.auth.setSession(result.session);
+        if (sessionError) throw sessionError;
+        await ensureAccount({});
+        toast.success("Signed in successfully.");
+        setAnnouncement("Signed in successfully.");
+        await redirectByRole();
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password });
         if (error) throw error;
