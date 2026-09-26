@@ -507,16 +507,17 @@ function Contact() {
     setStatus("sending");
     setErrorMessage(null);
     try {
-      await submitContact({ data: payload });
-      setStatus("sent");
-      form.reset();
-    } catch (err) {
+      const result = await submitContact({ data: payload });
+      if (result.ok) {
+        setStatus("sent");
+        form.reset();
+      } else {
+        setStatus("error");
+        setErrorMessage(result.error);
+      }
+    } catch {
       setStatus("error");
-      setErrorMessage(
-        err instanceof Error && err.message
-          ? err.message
-          : "We could not send your message. Please try again.",
-      );
+      setErrorMessage("We could not send your message. Please try again.");
     }
   };
 
