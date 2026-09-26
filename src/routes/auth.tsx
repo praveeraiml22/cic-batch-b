@@ -287,16 +287,50 @@ function AuthPage() {
                 />
               </>
             )}
-            <AuthField
-              ref={refs.email}
-              icon={<Mail size={16} />}
-              label="Email"
-              type="email"
-              value={email}
-              onChange={setEmail}
-              error={errors.email}
-              required
-            />
+            {mode === "signin" && signInMethod === "studentId" ? (
+              <AuthField
+                ref={refs.studentId}
+                icon={<Hash size={16} />}
+                label="Student ID"
+                value={studentId}
+                onChange={setStudentId}
+                placeholder="20231234"
+                error={errors.studentId}
+                required
+              />
+            ) : (
+              <AuthField
+                ref={refs.email}
+                icon={<Mail size={16} />}
+                label="Email"
+                type="email"
+                value={email}
+                onChange={setEmail}
+                error={errors.email}
+                required
+              />
+            )}
+            {mode === "signin" && (
+              <div className="flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            )}
+            {mode === "signin" && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSignInMethod(signInMethod === "email" ? "studentId" : "email");
+                  setErrors({});
+                }}
+                className="w-full text-xs font-medium text-navy hover:text-gold transition"
+              >
+                {signInMethod === "email"
+                  ? "Sign in with Student ID instead"
+                  : "Sign in with Email instead"}
+              </button>
+            )}
             <AuthField
               ref={refs.password}
               icon={<Lock size={16} />}
