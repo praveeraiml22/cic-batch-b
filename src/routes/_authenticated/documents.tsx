@@ -380,7 +380,8 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
           View
         </button>
         <button onClick={download} disabled={busy} className="flex-1 min-w-[7rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-navy text-white py-2 text-xs font-semibold hover:bg-navy-deep transition disabled:opacity-60">
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} {busy ? "Downloading…" : "Download"}
+          {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          {busy ? (progress !== null ? `Downloading… ${progress}%` : "Downloading…") : "Download"}
         </button>
         {ownerId === d.uploaded_by && (
           <button onClick={remove} className="px-3 py-2 rounded-md border border-border text-xs text-muted-foreground hover:text-rose-600 transition">
