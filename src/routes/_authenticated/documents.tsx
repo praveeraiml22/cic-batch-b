@@ -335,17 +335,20 @@ function FolderForm({ parentId, onDone }: { parentId: string | null; onDone: () 
 
 function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   async function download() {
     if (busy) return;
     setBusy(true);
+    setProgress(0);
     try {
       const url = await getSignedUrl(d.file_url);
-      await downloadFromUrl(url, d.file_name || d.title || "document");
-      toast.success("Download started");
+      await downloadFromUrl(url, d.file_name || d.title || "document", setProgress);
+      toast.success("Download complete");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Download failed");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
   async function view() {
@@ -377,7 +380,8 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
           View
         </button>
         <button onClick={download} disabled={busy} className="flex-1 min-w-[7rem] inline-flex items-center justify-center gap-1.5 rounded-md bg-navy text-white py-2 text-xs font-semibold hover:bg-navy-deep transition disabled:opacity-60">
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} {busy ? "Downloading…" : "Download"}
+          {busy ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+          {busy ? (progress !== null ? `Downloading… ${progress}%` : "Downloading…") : "Download"}
         </button>
         {ownerId === d.uploaded_by && (
           <button onClick={remove} className="px-3 py-2 rounded-md border border-border text-xs text-muted-foreground hover:text-rose-600 transition">
@@ -385,6 +389,17 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
           </button>
         )}
       </div>
+      {busy && progress !== null && (
+        <div className="mt-3">
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gold transition-[width] duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="mt-1 text-[11px] font-medium text-muted-foreground text-right">{progress}%</p>
+        </div>
+      )}
     </div>
   );
 }

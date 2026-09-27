@@ -30,11 +30,35 @@ export async function getSignedUrl(path: string): Promise<string> {
   return data?.signedUrl ?? path;
 }
 
-/** Force-download a file from a URL via a Blob + temporary anchor click. */
-export async function downloadFromUrl(url: string, filename: string) {
+/** Force-download a file from a URL via a Blob + temporary anchor click.
+ *  Streams the response so real download progress (0–100) can be reported. */
+export async function downloadFromUrl(
+  url: string,
+  filename: string,
+  onProgress?: (pct: number) => void,
+) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
-  const blob = await res.blob();
+
+  const total = Number(res.headers.get("content-length")) || 0;
+  let blob: Blob;
+  if (res.body && total > 0) {
+    const reader = res.body.getReader();
+    const chunks: BlobPart[] = [];
+    let loaded = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      loaded += value.byteLength;
+      onProgress?.(Math.min(99, Math.round((loaded / total) * 100)));
+    }
+    blob = new Blob(chunks, { type: res.headers.get("content-type") ?? undefined });
+  } else {
+    blob = await res.blob();
+  }
+  onProgress?.(100);
+
   const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = blobUrl;
