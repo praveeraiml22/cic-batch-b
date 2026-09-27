@@ -389,6 +389,17 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
           </button>
         )}
       </div>
+      {busy && progress !== null && (
+        <div className="mt-3">
+          <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+            <div
+              className="h-full rounded-full bg-gold transition-[width] duration-200"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+          <p className="mt-1 text-[11px] font-medium text-muted-foreground text-right">{progress}%</p>
+        </div>
+      )}
     </div>
   );
 }
