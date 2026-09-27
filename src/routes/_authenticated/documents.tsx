@@ -335,17 +335,20 @@ function FolderForm({ parentId, onDone }: { parentId: string | null; onDone: () 
 
 function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChanged: () => void }) {
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
   async function download() {
     if (busy) return;
     setBusy(true);
+    setProgress(0);
     try {
       const url = await getSignedUrl(d.file_url);
-      await downloadFromUrl(url, d.file_name || d.title || "document");
-      toast.success("Download started");
+      await downloadFromUrl(url, d.file_name || d.title || "document", setProgress);
+      toast.success("Download complete");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Download failed");
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   }
   async function view() {
