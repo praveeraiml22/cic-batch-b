@@ -51,7 +51,7 @@ function AuthPage() {
   const fetchAccount = useServerFn(getCurrentAccount);
   const signInStudentId = useServerFn(signInWithStudentId);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [signInMethod, setSignInMethod] = useState<"email" | "studentId">("email");
+  const [signInMethod, setSignInMethod] = useState<"email" | "studentId">("studentId");
   const [loading, setLoading] = useState(false);
   
   const [resetLoading, setResetLoading] = useState(false);
