@@ -33,6 +33,26 @@ async function loadOrCreateAccount(userId: string) {
     if (roleError) throw new Error(roleError.message);
   }
 
+  // Ensure the student's assignment folder exists (created at signup for
+  // verified users; created here on first sign-in after email verification).
+  const { data: existingFolder } = await supabaseAdmin
+    .from("document_folders")
+    .select("id")
+    .eq("owner_id", userId)
+    .eq("kind", "assignment")
+    .maybeSingle();
+  if (!existingFolder) {
+    const uname =
+      (metadata.username as string) ||
+      (metadata.full_name as string) ||
+      (metadata.name as string) ||
+      (user.email ? user.email.split("@")[0] : "") ||
+      userId;
+    await supabaseAdmin
+      .from("document_folders")
+      .insert({ name: uname, parent_id: null, owner_id: userId, kind: "assignment", username: uname });
+  }
+
   const [{ data: profile, error: profileLoadError }, { data: refreshedRoles, error: rolesLoadError }] = await Promise.all([
     supabaseAdmin.from("profiles").select("*").eq("id", userId).maybeSingle(),
     supabaseAdmin.from("user_roles").select("role").eq("user_id", userId),
