@@ -63,6 +63,7 @@ function AuthPage() {
   const [studentId, setStudentId] = useState("");
   const [errors, setErrors] = useState<FieldErrors>({});
   const [announcement, setAnnouncement] = useState("");
+  const [verifyEmail, setVerifyEmail] = useState<string | null>(null);
 
   const refs = {
     fullName: useRef<HTMLInputElement>(null),
@@ -161,9 +162,8 @@ function AuthPage() {
           setAnnouncement("Account created successfully.");
           await redirectByRole();
         } else {
-          toast.success("Account created successfully. Please check your email to verify your account.");
           setAnnouncement("Account created. Please verify your email.");
-          setMode("signin");
+          setVerifyEmail(normalizedEmail);
         }
       } else if (signInMethod === "studentId") {
         const result = await signInStudentId({ data: { studentId: studentId.trim(), password } });
@@ -220,6 +220,52 @@ function AuthPage() {
     } finally {
       setResetLoading(false);
     }
+  }
+
+  if (verifyEmail) {
+    return (
+      <main className="min-h-screen bg-hero relative overflow-hidden flex items-center justify-center px-4 py-12">
+        <div
+          className="absolute inset-0 opacity-[0.06] pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)",
+            backgroundSize: "64px 64px",
+            maskImage: "radial-gradient(ellipse at center, black 30%, transparent 75%)",
+          }}
+        />
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="relative w-full max-w-md"
+        >
+          <div className="rounded-2xl bg-white/95 backdrop-blur px-8 py-12 shadow-elegant text-center">
+            <div className="mx-auto h-16 w-16 rounded-full bg-gold/15 flex items-center justify-center">
+              <Mail size={28} className="text-gold" />
+            </div>
+            <h1 className="mt-6 font-display text-3xl font-bold text-ink">Verify your email</h1>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              We've sent a verification link to <span className="font-semibold text-ink">{verifyEmail}</span>.
+              Click the link in that email to activate your account, then sign in. New accounts also
+              require administrator approval before full access.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setVerifyEmail(null);
+                setMode("signin");
+                setPassword("");
+                setConfirmPassword("");
+              }}
+              className="mt-8 w-full rounded-xl bg-gold px-4 py-3 text-sm font-semibold text-ink shadow-gold transition hover:brightness-105"
+            >
+              Back to sign in →
+            </button>
+          </div>
+        </motion.div>
+      </main>
+    );
   }
 
   return (
