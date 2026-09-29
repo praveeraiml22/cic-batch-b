@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { sendContactMessage } from "@/lib/contact.functions";
+import { AchievementWall, NoticeBoard } from "@/components/landing-boards";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
 import {
@@ -45,6 +46,8 @@ function LandingPage() {
     <main className="min-h-screen bg-background text-foreground font-sans">
       <Navbar />
       <Hero />
+      <AchievementWall />
+      <NoticeBoard />
       <About />
       <Coordinators />
       <Contact />
