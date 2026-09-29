@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          achieved_on: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          sort_order: number
+          student_name: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          achieved_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          sort_order?: number
+          student_name?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          achieved_on?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          sort_order?: number
+          student_name?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           created_at: string
@@ -291,6 +327,48 @@ export type Database = {
           image_url?: string | null
           tag?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      notices: {
+        Row: {
+          body: string | null
+          category: string
+          created_at: string
+          created_by: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          id: string
+          notice_date: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          notice_date?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          id?: string
+          notice_date?: string
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
