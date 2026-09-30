@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
 import { uploadToBucket, formatBytes } from "@/lib/upload";
 import { listAllResumes } from "@/lib/resume.functions";
+import { AchievementsAdmin, PublicNoticesAdmin } from "@/components/admin-boards";
 
 function AdminDownloadButton({ path, name }: { path: string; name?: string | null }) {
   const getUrl = useServerFn(getAdminFileUrl);
@@ -97,6 +98,8 @@ function AdminPage() {
             <TabsTrigger value="announcements" className="whitespace-nowrap">Notices</TabsTrigger>
             <TabsTrigger value="assignments" className="whitespace-nowrap">Assignments</TabsTrigger>
             <TabsTrigger value="resumes" className="whitespace-nowrap">Resumes</TabsTrigger>
+            <TabsTrigger value="achievements" className="whitespace-nowrap">Achievement Wall</TabsTrigger>
+            <TabsTrigger value="public-notices" className="whitespace-nowrap">Home Notice Board</TabsTrigger>
           </TabsList>
         </div>
 
@@ -107,6 +110,8 @@ function AdminPage() {
         <TabsContent value="announcements" className="mt-6"><AnnouncementsAdmin /></TabsContent>
         <TabsContent value="assignments" className="mt-6"><AssignmentsAdmin /></TabsContent>
         <TabsContent value="resumes" className="mt-6"><ResumesAdmin /></TabsContent>
+        <TabsContent value="achievements" className="mt-6"><AchievementsAdmin /></TabsContent>
+        <TabsContent value="public-notices" className="mt-6"><PublicNoticesAdmin /></TabsContent>
 
       </Tabs>
     </div>
