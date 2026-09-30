@@ -4,6 +4,8 @@ import { Trophy, FileText, Download, Megaphone, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { downloadFromUrl, formatBytes } from "@/lib/upload";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { getNoticeFileUrl } from "@/lib/notices.functions";
 
 type Achievement = {
   id: string;
@@ -102,13 +104,13 @@ export function AchievementWall() {
 
 function NoticeDownload({ n }: { n: Notice }) {
   const [pct, setPct] = useState<number | null>(null);
+  const getUrl = useServerFn(getNoticeFileUrl);
   async function go() {
     if (!n.file_path) return;
     setPct(0);
     try {
-      const { data, error } = await supabase.storage.from("notices").createSignedUrl(n.file_path, 600);
-      if (error || !data) throw error ?? new Error("Could not open file");
-      await downloadFromUrl(data.signedUrl, n.file_name || `${n.title}.pdf`, setPct);
+      const { url } = await getUrl({ data: { id: n.id } });
+      await downloadFromUrl(url, n.file_name || `${n.title}.pdf`, setPct);
     } catch (e: any) {
       toast.error(e?.message ?? "Download failed");
     } finally {
