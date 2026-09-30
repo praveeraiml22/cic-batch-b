@@ -25,6 +25,36 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
     const { userId } = context as { userId: string };
     const supabaseAdmin = await assertAdmin(userId);
     if (data.userId === userId) throw new Error("You cannot delete your own account");
+
+    // Remove the student's assignment folder (and any nested folders + their files).
+    const { data: roots } = await supabaseAdmin
+      .from("document_folders")
+      .select("id")
+      .eq("owner_id", data.userId)
+      .eq("kind", "assignment");
+    let frontier = (roots ?? []).map((r) => r.id);
+    const allIds: string[] = [...frontier];
+    while (frontier.length) {
+      const { data: kids } = await supabaseAdmin
+        .from("document_folders")
+        .select("id")
+        .in("parent_id", frontier);
+      frontier = (kids ?? []).map((k) => k.id);
+      allIds.push(...frontier);
+    }
+    if (allIds.length) {
+      const { data: docs } = await supabaseAdmin
+        .from("documents")
+        .select("id, file_url")
+        .in("folder_id", allIds);
+      const paths = (docs ?? []).map((d) => d.file_url).filter((p) => p && !p.startsWith("http"));
+      if (paths.length) await supabaseAdmin.storage.from("cic-files").remove(paths);
+      if (docs?.length) await supabaseAdmin.from("documents").delete().in("folder_id", allIds);
+      for (const id of allIds.reverse()) {
+        await supabaseAdmin.from("document_folders").delete().eq("id", id);
+      }
+    }
+
     const { error } = await supabaseAdmin.auth.admin.deleteUser(data.userId);
     if (error) throw new Error(error.message);
     return { ok: true };
