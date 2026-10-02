@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-async function loadOrCreateAccount(userId: string) {
+export async function loadOrCreateAccount(userId: string) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.getUserById(userId);

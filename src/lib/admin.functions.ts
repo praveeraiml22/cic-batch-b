@@ -98,14 +98,31 @@ export const listAdminUsers = createServerFn({ method: "GET" })
     const { userId } = context as { userId: string };
     const supabaseAdmin = await assertAdmin(userId);
 
-    const [{ data: usersData, error: usersError }, { data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await Promise.all([
+    const fetchAll = () => Promise.all([
       supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 }),
       supabaseAdmin.from("profiles").select("*"),
       supabaseAdmin.from("user_roles").select("user_id,role"),
     ]);
+    let [{ data: usersData, error: usersError }, { data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await fetchAll();
     if (usersError) throw new Error(usersError.message);
     if (profilesError) throw new Error(profilesError.message);
     if (rolesError) throw new Error(rolesError.message);
+
+    // Verified users who never completed a sign-in have no profile yet —
+    // create it now (status defaults to "pending") so they reach approval.
+    const missing = usersData.users.filter(
+      (u) => u.email_confirmed_at && !profiles?.some((p) => p.id === u.id),
+    );
+    if (missing.length) {
+      const { loadOrCreateAccount } = await import("./account.functions");
+      for (const u of missing) {
+        try { await loadOrCreateAccount(u.id); } catch (e) { console.error("[admin] profile sync failed", e); }
+      }
+      [{ data: usersData, error: usersError }, { data: profiles, error: profilesError }, { data: roles, error: rolesError }] = await fetchAll();
+      if (usersError || profilesError || rolesError) throw new Error("Failed to reload members");
+    }
+    // Unverified sign-ups are not accounts yet; hide them.
+    usersData = { ...usersData, users: usersData.users.filter((u) => u.email_confirmed_at) } as typeof usersData;
 
     return usersData.users.map((authUser) => {
       const profile = profiles?.find((p) => p.id === authUser.id) as Record<string, any> | undefined;
