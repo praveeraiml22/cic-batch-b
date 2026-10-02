@@ -6,6 +6,9 @@ export const ONESIGNAL_APP_ID = "16a361c6-cc92-458c-8ecd-8e50a1509c0c";
 // Absolute URL is required: OneSignal fetches the image itself.
 const LOGO_URL = "https://cic-batch-b.lovable.app/__l5e/assets-v1/5d09a45e-7cb6-483d-b9ca-855818dde49e/cic-logo.png";
 
+// Opened when the user taps a notification that has no specific link.
+const SITE_URL = "https://cic-batch-b.lovable.app/";
+
 const PayloadSchema = z.object({
   log_id: z.string().uuid().optional(),
   event_type: z.string().min(1),
