@@ -684,6 +684,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      uploader_name: { Args: { _uid: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "student" | "faculty" | "coordinator" | "super_admin"
