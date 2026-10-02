@@ -188,7 +188,8 @@ export const Route = createFileRoute("/api/public/send-push-notification")({
             broadcast_id: sourceId,
             link: payload.link ?? null,
           },
-          ...(payload.link ? { url: payload.link } : {}),
+          // Tapping the notification opens the CIC app/website (or a specific link when provided).
+          url: payload.link ?? SITE_URL,
           android_channel_name: "CIC Notifications",
           priority: 10,
           ...targeting,
