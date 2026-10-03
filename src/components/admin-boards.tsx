@@ -130,7 +130,7 @@ export function PublicNoticesAdmin() {
     if (!form.title.trim()) return toast.error("Title is required");
     if (!form.body.trim() && !file && !(editing?.file_path && !removeFile)) return toast.error("Add a text message or attach a PDF");
     if (file && file.type !== "application/pdf") return toast.error("Only PDF files are allowed");
-    if (file && file.size > 20 * 1024 * 1024) return toast.error("PDF must be under 20 MB");
+    if (file && file.size > 5 * 1024 * 1024) return toast.error("PDF must be 5 MB or smaller");
     setBusy(true);
     try {
       let fileFields: Record<string, any> = {};
@@ -181,7 +181,7 @@ export function PublicNoticesAdmin() {
         </div>
         <textarea className={input} rows={4} placeholder="Notice text (optional if a PDF is attached)" value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} />
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">PDF attachment (optional, max 20 MB)</label>
+          <label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">PDF attachment (optional, max 5 MB)</label>
           <input className={`${input} mt-1`} type="file" accept="application/pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
           {editing?.file_path && !file && (
             <label className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">

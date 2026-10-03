@@ -229,7 +229,7 @@ function SubmitForm({ onDone }: { onDone: () => void }) {
         <Input label="Subject" value={subject} onChange={setSubject} required />
         <Input label="Semester" value={semester} onChange={setSemester} placeholder="6th" />
         <div>
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">File (max 100 MB)</label>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">File (max 5 MB)</label>
           <input
             type="file"
             required
