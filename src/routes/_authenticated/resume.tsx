@@ -22,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/resume")({
   component: ResumePage,
 });
 
-export const MAX_RESUME_SIZE = 10 * 1024 * 1024;
+export const MAX_RESUME_SIZE = 5 * 1024 * 1024;
 const ALLOWED_EXT = ["pdf", "doc", "docx"];
 const ALLOWED_MIME = [
   "application/pdf",
@@ -35,7 +35,7 @@ export function validateResumeFile(file: File): string | null {
   if (!ALLOWED_EXT.includes(ext) && !ALLOWED_MIME.includes(file.type)) {
     return "Only PDF, DOC, or DOCX files are allowed.";
   }
-  if (file.size > MAX_RESUME_SIZE) return "File is larger than the 10 MB limit.";
+  if (file.size > MAX_RESUME_SIZE) return "File is larger than the 5 MB limit.";
   if (file.size === 0) return "That file appears to be empty.";
   return null;
 }
@@ -202,7 +202,7 @@ function ResumePage() {
             <Upload size={22} />
           </div>
           <h2 className="mt-4 font-display text-lg font-semibold">No resume uploaded yet</h2>
-          <p className="mt-1 text-sm text-muted-foreground">PDF, DOC, or DOCX — up to 10 MB.</p>
+          <p className="mt-1 text-sm text-muted-foreground">PDF, DOC, or DOCX — up to 5 MB.</p>
           <button
             onClick={() => inputRef.current?.click()}
             disabled={uploading}

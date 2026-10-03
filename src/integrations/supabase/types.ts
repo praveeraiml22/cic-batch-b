@@ -674,6 +674,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      storage_usage_bytes: { Args: never; Returns: number }
       sync_push_result: {
         Args: {
           _error: string
