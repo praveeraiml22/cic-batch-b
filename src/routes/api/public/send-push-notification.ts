@@ -228,10 +228,12 @@ export const Route = createFileRoute("/api/public/send-push-notification")({
             return Response.json({ ok: false, error: reason }, { status: 502 });
           }
 
-          const recipients = json?.recipients ?? 0;
-          const notificationId = json?.id ?? null;
+          // The current OneSignal API returns only an id (no recipient count);
+          // a non-empty id means the notification was accepted for delivery.
+          const recipients = json?.recipients ?? null;
+          const notificationId = json?.id || null;
 
-          if (!notificationId || recipients === 0) {
+          if (!notificationId) {
             const reason = "No subscribed OneSignal recipients for this target";
             console.error(`[ONESIGNAL ERROR] ${reason}: ${JSON.stringify(json?.errors ?? null)}`);
             await finish("no_recipients", reason, json);
