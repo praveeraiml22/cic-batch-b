@@ -76,6 +76,16 @@ function AuthedLayout() {
     ensureAccount({}).catch(() => undefined);
   }, [ensureAccount, user?.id]);
 
+  // Never render protected pages before the session is confirmed — the
+  // beforeLoad redirect to /auth handles unauthenticated users.
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-muted/30">
+        <Loader2 className="animate-spin text-gold" size={32} />
+      </div>
+    );
+  }
+
   async function handleLogout() {
     if (signingOut) return;
     setSigningOut(true);
