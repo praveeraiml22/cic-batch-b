@@ -11,17 +11,18 @@ export function StorageBar() {
   const pct = Math.min(100, (data.used / data.total) * 100);
   const remaining = Math.max(0, data.total - data.used);
   return (
-    <div className="mb-5 rounded-2xl border border-border bg-card p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <span className="inline-flex items-center gap-2 font-semibold"><HardDrive size={16} className="text-gold" /> Storage</span>
-        <span className="text-muted-foreground">
-          {formatBytes(remaining)} free of {formatBytes(data.total)} · {formatBytes(data.used)} used
+    <div className="rounded-lg border border-border bg-card/60 px-3 py-2">
+      <div className="flex items-center gap-2 text-[11px] leading-none">
+        <HardDrive size={12} className="shrink-0 text-gold" />
+        <span className="font-semibold text-foreground">Storage</span>
+        <span className="text-muted-foreground truncate">
+          {formatBytes(remaining)} free · {formatBytes(data.used)} used of {formatBytes(data.total)}
         </span>
+        <span className="ml-auto shrink-0 text-muted-foreground tabular-nums">{Math.round(pct)}%</span>
       </div>
-      <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+      <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
         <div className={`h-full rounded-full ${pct > 90 ? "bg-destructive" : "bg-gold"}`} style={{ width: `${pct}%` }} />
       </div>
-      <p className="mt-2 text-xs text-muted-foreground">Max file size: 5 MB per file.</p>
     </div>
   );
 }

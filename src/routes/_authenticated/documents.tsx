@@ -130,7 +130,6 @@ function DocumentsPage() {
         }
       />
 
-      <StorageBar />
 
 
       {/* Breadcrumbs */}
