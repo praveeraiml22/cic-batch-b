@@ -297,12 +297,7 @@ function About() {
       body: "Foster interdisciplinary projects, conduct technical workshops, host expert lectures, and create a thriving community around modern civil engineering practice.",
     },
   ];
-  const activities = [
-    { icon: Microscope, label: "Research & Prototyping" },
-    { icon: HardHat, label: "Field Studies & Site Visits" },
-    { icon: GraduationCap, label: "Skill-Building Workshops" },
-    { icon: Trophy, label: "Hackathons & Competitions" },
-  ];
+
 
   return (
     <section id="about" className="py-16 sm:py-24 lg:py-32 bg-background">
@@ -332,42 +327,6 @@ function About() {
           ))}
         </div>
 
-        <div className="mt-20 rounded-3xl bg-gradient-to-br from-navy to-navy-deep p-6 sm:p-10 lg:p-14 text-white relative overflow-hidden">
-          <div
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 20% 20%, white 1px, transparent 1px)",
-              backgroundSize: "32px 32px",
-            }}
-          />
-          <div className="relative grid lg:grid-cols-[1fr_1.2fr] gap-10 items-center">
-            <div>
-              <p className="text-xs uppercase tracking-[0.25em] text-gold-soft">What we do</p>
-              <h3 className="mt-3 text-3xl lg:text-4xl font-display font-semibold">
-                Innovation in every direction
-              </h3>
-              <p className="mt-4 text-white/70 leading-relaxed">
-                From smart materials to sustainable structures, members explore
-                the full spectrum of modern civil engineering through hands-on
-                programs.
-              </p>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {activities.map((a) => (
-                <div
-                  key={a.label}
-                  className="flex items-center gap-3 rounded-xl bg-white/5 border border-white/10 p-4 backdrop-blur"
-                >
-                  <div className="h-10 w-10 rounded-lg bg-gold/15 border border-gold/30 grid place-items-center">
-                    <a.icon className="text-gold" size={18} />
-                  </div>
-                  <span className="text-sm font-medium text-white/90">{a.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   );
