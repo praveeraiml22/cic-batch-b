@@ -114,6 +114,10 @@ function DashboardPage() {
           )}
         </div>
       </div>
+
+      <div className="mt-6 sm:mt-8 max-w-md">
+        <StorageBar />
+      </div>
     </div>
   );
 }
