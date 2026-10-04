@@ -56,7 +56,7 @@ const navItems = [
 
 
 function AuthedLayout() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const ensureAccount = useServerFn(ensureMemberAccount);
   const { data: profile } = useProfile(user?.id);
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
@@ -75,6 +75,16 @@ function AuthedLayout() {
     if (!user?.id) return;
     ensureAccount({}).catch(() => undefined);
   }, [ensureAccount, user?.id]);
+
+  // Never render protected pages before the session is confirmed — the
+  // beforeLoad redirect to /auth handles unauthenticated users.
+  if (authLoading || !user) {
+    return (
+      <div className="min-h-screen grid place-items-center bg-muted/30">
+        <Loader2 className="animate-spin text-gold" size={32} />
+      </div>
+    );
+  }
 
   async function handleLogout() {
     if (signingOut) return;
