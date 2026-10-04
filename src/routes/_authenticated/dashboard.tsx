@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useProfile } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
+import { StorageBar } from "@/components/storage-bar";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
