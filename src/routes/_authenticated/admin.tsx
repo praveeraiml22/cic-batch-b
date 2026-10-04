@@ -267,6 +267,10 @@ function AssignmentsAdmin() {
               <option value="rejected">rejected</option>
               <option value="resubmission_required">resubmission_required</option>
             </select>
+            <select value={a.is_public ? "public" : "private"} onChange={(e) => update(a.id, { is_public: e.target.value === "public" })} aria-label="Visibility" className="w-full sm:w-auto text-xs rounded-md border border-border bg-background px-2 py-1.5">
+              <option value="private">Private (Only for admins)</option>
+              <option value="public">Public (For everyone)</option>
+            </select>
           </div>
           <div className="mt-4 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-3 items-start">
             <textarea defaultValue={a.feedback ?? ""} rows={2} placeholder="Feedback..." onBlur={(e) => e.target.value !== (a.feedback ?? "") && update(a.id, { feedback: e.target.value })}
