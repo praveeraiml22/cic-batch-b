@@ -19,7 +19,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { uploadToBucket, getSignedUrl, formatBytes, downloadFromUrl } from "@/lib/upload";
 import { PageHeader } from "@/components/page-header";
-import { StorageBar } from "@/components/storage-bar";
 
 export const Route = createFileRoute("/_authenticated/documents")({
   component: DocumentsPage,
@@ -130,7 +129,6 @@ function DocumentsPage() {
         }
       />
 
-      <StorageBar />
 
 
       {/* Breadcrumbs */}
