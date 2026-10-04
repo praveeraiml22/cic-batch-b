@@ -56,7 +56,7 @@ const navItems = [
 
 
 function AuthedLayout() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const ensureAccount = useServerFn(ensureMemberAccount);
   const { data: profile } = useProfile(user?.id);
   const { data: isAdmin, isLoading: adminLoading } = useIsAdmin(user?.id);
