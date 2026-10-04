@@ -9,8 +9,6 @@ import {
   Building2,
   Lightbulb,
   Target,
-  Trophy,
-  GraduationCap,
   Mail,
   MapPin,
   Linkedin,
@@ -19,8 +17,6 @@ import {
   Menu,
   X,
   Sparkles,
-  HardHat,
-  Microscope,
   Send,
 } from "lucide-react";
 // Served from /public so it works on both Lovable and Netlify deploys.
