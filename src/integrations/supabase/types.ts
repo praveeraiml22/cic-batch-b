@@ -102,6 +102,7 @@ export type Database = {
           file_url: string | null
           grade: string | null
           id: string
+          is_public: boolean
           reviewed_at: string | null
           reviewed_by: string | null
           semester: string | null
@@ -120,6 +121,7 @@ export type Database = {
           file_url?: string | null
           grade?: string | null
           id?: string
+          is_public?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
           semester?: string | null
@@ -138,6 +140,7 @@ export type Database = {
           file_url?: string | null
           grade?: string | null
           id?: string
+          is_public?: boolean
           reviewed_at?: string | null
           reviewed_by?: string | null
           semester?: string | null

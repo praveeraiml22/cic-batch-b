@@ -75,7 +75,51 @@ function AssignmentsPage() {
           ))}
         </div>
       )}
+
+      <PublicAssignments />
     </div>
+  );
+}
+
+function PublicAssignments() {
+  const { user } = useAuth();
+  const { data } = useQuery({
+    queryKey: ["public-assignments"],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assignments")
+        .select("id,title,subject,file_url,file_name,created_at")
+        .eq("is_public", true)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  if (!data?.length) return null;
+  async function open(path: string) {
+    try { window.open(await getSignedUrl(path), "_blank"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Could not open file."); }
+  }
+  return (
+    <section className="mt-10">
+      <h2 className="font-display text-lg sm:text-xl font-semibold mb-4">Following assignments are allowed for the public view.</h2>
+      <div className="space-y-3">
+        {data.map((a) => (
+          <div key={a.id} className="flex flex-col gap-3 rounded-xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <p className="font-semibold break-words">{a.title}</p>
+              <p className="text-xs text-muted-foreground break-words">{a.subject}{a.file_name ? ` · ${a.file_name}` : ""}</p>
+            </div>
+            {a.file_url && (
+              <button onClick={() => open(a.file_url!)} className="inline-flex items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted">
+                <Download size={14} /> Open
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
