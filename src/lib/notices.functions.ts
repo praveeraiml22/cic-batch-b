@@ -15,6 +15,7 @@ export const getNoticeFileUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     const path = (notice as any)?.file_path as string | null;
     if (!path) throw new Error("This notice has no attachment");
+    if (path.startsWith("b2:")) return { url: `/api/public/notice-file?id=${data.id}` };
     const { data: signed, error: sErr } = await supabaseAdmin.storage.from("notices").createSignedUrl(path, 600);
     if (sErr || !signed) throw new Error(sErr?.message ?? "Could not create download link");
     return { url: signed.signedUrl };

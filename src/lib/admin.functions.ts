@@ -47,7 +47,13 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
         .from("documents")
         .select("id, file_url")
         .in("folder_id", allIds);
-      const paths = (docs ?? []).map((d) => d.file_url).filter((p) => p && !p.startsWith("http"));
+      const all = (docs ?? []).map((d) => d.file_url).filter((p) => p && !p.startsWith("http"));
+      const b2Paths = all.filter((p) => p.startsWith("b2:"));
+      const paths = all.filter((p) => !p.startsWith("b2:"));
+      if (b2Paths.length) {
+        const b2 = await import("@/lib/b2.server");
+        for (const p of b2Paths) await b2.b2Delete(b2.toObjectKey(p)).catch(() => {});
+      }
       if (paths.length) await supabaseAdmin.storage.from("cic-files").remove(paths);
       if (docs?.length) await supabaseAdmin.from("documents").delete().in("folder_id", allIds);
       for (const id of allIds.reverse()) {
@@ -221,6 +227,10 @@ export const getAdminFileUrl = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { userId } = context as { userId: string };
     const supabaseAdmin = await assertAdmin(userId);
+    if (data.path.startsWith("b2:")) {
+      const b2 = await import("@/lib/b2.server");
+      return { url: await b2.b2SignedUrl(b2.toObjectKey(data.path)) };
+    }
     const key = data.path.includes("cic-files/") ? data.path.split("cic-files/").pop()! : data.path;
     const { data: signed, error } = await supabaseAdmin
       .storage

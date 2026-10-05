@@ -1,0 +1,1 @@
+- New uploads (assignments, documents, resumes, home-notice PDFs) go to private Backblaze B2 via src/lib/b2.server.ts; DB path columns store "b2:<key>" and paths without that prefix are legacy Supabase Storage objects — lets both coexist without a data migration.

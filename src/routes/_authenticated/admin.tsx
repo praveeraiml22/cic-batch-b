@@ -10,7 +10,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
-import { uploadToBucket, formatBytes } from "@/lib/upload";
+import { uploadToBucket, formatBytes, isB2Path, downloadStoredFile, removeStoredFile } from "@/lib/upload";
 import { listAllResumes } from "@/lib/resume.functions";
 import { AchievementsAdmin, PublicNoticesAdmin } from "@/components/admin-boards";
 
@@ -23,6 +23,11 @@ function AdminDownloadButton({ path, name }: { path: string; name?: string | nul
     setLoading(true);
     setProgress(0);
     try {
+      if (isB2Path(path)) {
+        await downloadStoredFile(path, name || path.split("/").pop() || "download", setProgress);
+        toast.success("Download started");
+        return;
+      }
       const { url } = await getUrl({ data: { path } });
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Download failed (${res.status})`);
@@ -192,7 +197,7 @@ function AssignmentsAdmin() {
     if (!confirm(`Delete assignment "${a.title}"? This cannot be undone.`)) return;
     const { error } = await supabase.from("assignments").delete().eq("id", a.id);
     if (error) return toast.error(error.message);
-    if (a.file_url) await supabase.storage.from("cic-files").remove([a.file_url]);
+    if (a.file_url) await removeStoredFile(a.file_url).catch(() => {});
     toast.success("Assignment deleted");
     qc.invalidateQueries({ queryKey: ["admin-assignments"] });
   }

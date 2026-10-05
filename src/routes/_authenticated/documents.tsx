@@ -17,7 +17,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { uploadToBucket, getSignedUrl, formatBytes, downloadFromUrl } from "@/lib/upload";
+import { uploadToBucket, getSignedUrl, formatBytes, downloadStoredFile, removeStoredFile } from "@/lib/upload";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/documents")({
@@ -343,8 +343,7 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
     setBusy(true);
     setProgress(0);
     try {
-      const url = await getSignedUrl(d.file_url);
-      await downloadFromUrl(url, d.file_name || d.title || "document", setProgress);
+      await downloadStoredFile(d.file_url, d.file_name || d.title || "document", setProgress);
       toast.success("Download complete");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Download failed");
@@ -364,8 +363,9 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
   async function remove() {
     if (!confirm("Delete this document?")) return;
     const { error } = await supabase.from("documents").delete().eq("id", d.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Deleted"); onChanged(); }
+    if (error) return toast.error(error.message);
+    await removeStoredFile(d.file_url).catch(() => {});
+    toast.success("Deleted"); onChanged();
   }
   return (
     <div className="rounded-2xl bg-card border border-border p-5 sm:p-6 hover:border-gold/40 transition flex flex-col">
