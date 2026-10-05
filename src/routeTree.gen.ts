@@ -20,6 +20,9 @@ import { Route as AuthenticatedDocumentsRouteImport } from './routes/_authentica
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as AuthenticatedResumeRouteImport } from './routes/_authenticated/resume'
+import { Route as ApiFilesDownloadRouteImport } from './routes/api/files/download'
+import { Route as ApiFilesUploadRouteImport } from './routes/api/files/upload'
+import { Route as ApiPublicNoticeFileRouteImport } from './routes/api/public/notice-file'
 import { Route as ApiPublicSendPushNotificationRouteImport } from './routes/api/public/send-push-notification'
 
 const IndexRoute = IndexRouteImport.update({
@@ -78,6 +81,21 @@ const AuthenticatedResumeRoute = AuthenticatedResumeRouteImport.update({
   path: '/resume',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiFilesDownloadRoute = ApiFilesDownloadRouteImport.update({
+  id: '/api/files/download',
+  path: '/api/files/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFilesUploadRoute = ApiFilesUploadRouteImport.update({
+  id: '/api/files/upload',
+  path: '/api/files/upload',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicNoticeFileRoute = ApiPublicNoticeFileRouteImport.update({
+  id: '/api/public/notice-file',
+  path: '/api/public/notice-file',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSendPushNotificationRoute =
   ApiPublicSendPushNotificationRouteImport.update({
     id: '/api/public/send-push-notification',
@@ -96,6 +114,9 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/resume': typeof AuthenticatedResumeRoute
+  '/api/files/download': typeof ApiFilesDownloadRoute
+  '/api/files/upload': typeof ApiFilesUploadRoute
+  '/api/public/notice-file': typeof ApiPublicNoticeFileRoute
   '/api/public/send-push-notification': typeof ApiPublicSendPushNotificationRoute
 }
 export interface FileRoutesByTo {
@@ -109,6 +130,9 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/resume': typeof AuthenticatedResumeRoute
+  '/api/files/download': typeof ApiFilesDownloadRoute
+  '/api/files/upload': typeof ApiFilesUploadRoute
+  '/api/public/notice-file': typeof ApiPublicNoticeFileRoute
   '/api/public/send-push-notification': typeof ApiPublicSendPushNotificationRoute
 }
 export interface FileRoutesById {
@@ -124,6 +148,9 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/resume': typeof AuthenticatedResumeRoute
+  '/api/files/download': typeof ApiFilesDownloadRoute
+  '/api/files/upload': typeof ApiFilesUploadRoute
+  '/api/public/notice-file': typeof ApiPublicNoticeFileRoute
   '/api/public/send-push-notification': typeof ApiPublicSendPushNotificationRoute
 }
 export interface FileRouteTypes {
@@ -139,6 +166,9 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/resume'
+    | '/api/files/download'
+    | '/api/files/upload'
+    | '/api/public/notice-file'
     | '/api/public/send-push-notification'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -152,6 +182,9 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/profile'
     | '/resume'
+    | '/api/files/download'
+    | '/api/files/upload'
+    | '/api/public/notice-file'
     | '/api/public/send-push-notification'
   id:
     | '__root__'
@@ -166,6 +199,9 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/profile'
     | '/_authenticated/resume'
+    | '/api/files/download'
+    | '/api/files/upload'
+    | '/api/public/notice-file'
     | '/api/public/send-push-notification'
   fileRoutesById: FileRoutesById
 }
@@ -174,6 +210,9 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiFilesDownloadRoute: typeof ApiFilesDownloadRoute
+  ApiFilesUploadRoute: typeof ApiFilesUploadRoute
+  ApiPublicNoticeFileRoute: typeof ApiPublicNoticeFileRoute
   ApiPublicSendPushNotificationRoute: typeof ApiPublicSendPushNotificationRoute
 }
 
@@ -256,6 +295,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedResumeRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/files/download': {
+      id: '/api/files/download'
+      path: '/api/files/download'
+      fullPath: '/api/files/download'
+      preLoaderRoute: typeof ApiFilesDownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/files/upload': {
+      id: '/api/files/upload'
+      path: '/api/files/upload'
+      fullPath: '/api/files/upload'
+      preLoaderRoute: typeof ApiFilesUploadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/notice-file': {
+      id: '/api/public/notice-file'
+      path: '/api/public/notice-file'
+      fullPath: '/api/public/notice-file'
+      preLoaderRoute: typeof ApiPublicNoticeFileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/send-push-notification': {
       id: '/api/public/send-push-notification'
       path: '/api/public/send-push-notification'
@@ -294,6 +354,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiFilesDownloadRoute: ApiFilesDownloadRoute,
+  ApiFilesUploadRoute: ApiFilesUploadRoute,
+  ApiPublicNoticeFileRoute: ApiPublicNoticeFileRoute,
   ApiPublicSendPushNotificationRoute: ApiPublicSendPushNotificationRoute,
 }
 export const routeTree = rootRouteImport

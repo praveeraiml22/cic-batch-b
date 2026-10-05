@@ -135,9 +135,7 @@ export function PublicNoticesAdmin() {
     try {
       let fileFields: Record<string, any> = {};
       if (file) {
-        const path = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}-${file.name.replace(/[^\w.\-]+/g, "_")}`;
-        const { error } = await supabase.storage.from("notices").upload(path, file, { contentType: "application/pdf" });
-        if (error) throw error;
+        const { path } = await uploadToB2(file, "notices");
         fileFields = { file_path: path, file_name: file.name, file_size: file.size };
       } else if (removeFile) {
         fileFields = { file_path: null, file_name: null, file_size: null };
@@ -148,7 +146,7 @@ export function PublicNoticesAdmin() {
         ? await supabase.from("notices" as any).update(payload).eq("id", editing.id)
         : await supabase.from("notices" as any).insert({ ...payload, created_by: u.user?.id });
       if (res.error) throw res.error;
-      if (editing?.file_path && (file || removeFile)) await supabase.storage.from("notices").remove([editing.file_path]);
+      if (editing?.file_path && (file || removeFile)) await removeNoticeFile(editing.file_path);
       toast.success(editing ? "Notice updated" : "Notice published");
       reset();
       qc.invalidateQueries({ queryKey: ["admin-public-notices"] });
@@ -163,7 +161,7 @@ export function PublicNoticesAdmin() {
     if (!confirm("Delete this notice?")) return;
     const { error } = await supabase.from("notices" as any).delete().eq("id", n.id);
     if (error) return toast.error(error.message);
-    if (n.file_path) await supabase.storage.from("notices").remove([n.file_path]);
+    if (n.file_path) await removeNoticeFile(n.file_path);
     toast.success("Deleted");
     qc.invalidateQueries({ queryKey: ["admin-public-notices"] });
   }
@@ -220,4 +218,11 @@ export function PublicNoticesAdmin() {
       )}
     </div>
   );
+}
+
+async function removeNoticeFile(path: string) {
+  try {
+    if (isB2Path(path)) await removeStoredFile(path);
+    else await supabase.storage.from("notices").remove([path]);
+  } catch { /* file cleanup is best-effort */ }
 }

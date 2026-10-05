@@ -1,4 +1,56 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getB2FileUrl, deleteB2File } from "@/lib/files.functions";
+
+export const B2_PREFIX = "b2:";
+export const isB2Path = (p?: string | null) => !!p && p.startsWith(B2_PREFIX);
+export type FileCategory = "assignments" | "documents" | "resume" | "notices" | "images" | "ppts" | "others";
+
+async function accessToken() {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("You must be signed in.");
+  return token;
+}
+
+/** Upload a file to private B2 storage (via the app server) with real progress. Returns the stored path ("b2:..."). */
+export async function uploadToB2(file: File, category: FileCategory, onProgress?: (pct: number) => void): Promise<{ path: string }> {
+  if (file.size > MAX_FILE_SIZE) throw new Error("File exceeds the 5 MB limit");
+  const token = await accessToken();
+  const url = `/api/files/upload?category=${category}&name=${encodeURIComponent(file.name)}`;
+  const path = await new Promise<string>((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url, true);
+    xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+    xhr.setRequestHeader("content-type", file.type || "application/octet-stream");
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress?.(Math.min(99, Math.round((e.loaded / e.total) * 100))); };
+    xhr.onload = () => {
+      let body: any = {};
+      try { body = JSON.parse(xhr.responseText); } catch { /* ignore */ }
+      if (xhr.status >= 200 && xhr.status < 300 && body.path) resolve(body.path);
+      else reject(new Error(body.error ?? `Upload failed (${xhr.status})`));
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload"));
+    xhr.send(file);
+  });
+  onProgress?.(100);
+  return { path };
+}
+
+/** Download any stored file (B2 or legacy) with progress. */
+export async function downloadStoredFile(path: string, filename: string, onProgress?: (pct: number) => void) {
+  if (isB2Path(path)) {
+    const token = await accessToken();
+    return downloadFromUrl(`/api/files/download?path=${encodeURIComponent(path)}`, filename, onProgress, { Authorization: `Bearer ${token}` });
+  }
+  return downloadFromUrl(await getSignedUrl(path), filename, onProgress);
+}
+
+/** Delete a stored file (B2 or legacy Supabase Storage). */
+export async function removeStoredFile(path?: string | null) {
+  if (!path || path.startsWith("http")) return;
+  if (isB2Path(path)) await deleteB2File({ data: { path } });
+  else await supabase.storage.from("cic-files").remove([path]);
+}
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -7,6 +59,10 @@ export async function uploadToBucket(
   file: File,
   folder: string,
 ): Promise<{ path: string; url: string }> {
+  if (folder === "assignments" || folder === "documents") {
+    const { path } = await uploadToB2(file, folder);
+    return { path, url: "" };
+  }
   if (file.size > MAX_FILE_SIZE) {
     throw new Error("File exceeds the 5 MB limit");
   }
@@ -23,7 +79,8 @@ export async function uploadToBucket(
   return { path, url: signed?.signedUrl ?? "" };
 }
 
-export async function getSignedUrl(path: string): Promise<string> {
+export async function getSignedUrl(path: string, name?: string): Promise<string> {
+  if (isB2Path(path)) return (await getB2FileUrl({ data: { path, name } })).url;
   // path may already be a full URL — try to parse the bucket key out
   const key = path.includes("cic-files/") ? path.split("cic-files/").pop()! : path;
   const { data } = await supabase.storage.from("cic-files").createSignedUrl(key, 60 * 60);
@@ -36,8 +93,9 @@ export async function downloadFromUrl(
   url: string,
   filename: string,
   onProgress?: (pct: number) => void,
+  headers?: Record<string, string>,
 ) {
-  const res = await fetch(url);
+  const res = await fetch(url, headers ? { headers } : undefined);
   if (!res.ok) throw new Error(`Download failed (${res.status})`);
 
   const total = Number(res.headers.get("content-length")) || 0;

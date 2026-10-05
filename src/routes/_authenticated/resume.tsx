@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/page-header";
-import { formatBytes, getSignedUrl, downloadFromUrl, uploadWithProgress } from "@/lib/upload";
+import { formatBytes, getSignedUrl, downloadStoredFile, uploadToB2, removeStoredFile } from "@/lib/upload";
 
 export const Route = createFileRoute("/_authenticated/resume")({
   head: () => ({
@@ -66,13 +66,11 @@ function ResumePage() {
     const problem = validateResumeFile(file);
     if (problem) return toast.error(problem);
 
-    const safe = file.name.replace(/[^\w.\-]+/g, "_");
-    const path = `${user.id}/resume/${Date.now()}-${safe}`;
     const previousPath = resume?.file_path;
 
     setProgress(0);
     try {
-      await uploadWithProgress(path, file, setProgress);
+      const { path } = await uploadToB2(file, "resume", setProgress);
       const { error } = await supabase.from("resumes").upsert(
         {
           user_id: user.id,
@@ -85,7 +83,7 @@ function ResumePage() {
       );
       if (error) throw error;
       if (previousPath && previousPath !== path) {
-        await supabase.storage.from("cic-files").remove([previousPath]);
+        await removeStoredFile(previousPath).catch(() => {});
       }
       toast.success(previousPath ? "Resume replaced successfully." : "Resume uploaded successfully.");
       qc.invalidateQueries({ queryKey: ["my-resume", user.id] });
@@ -101,7 +99,7 @@ function ResumePage() {
     if (!resume) return;
     setBusy("view");
     try {
-      const url = await getSignedUrl(resume.file_path);
+      const url = await getSignedUrl(resume.file_path, resume.file_name);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {
       toast.error("Could not open the resume.");
@@ -114,8 +112,7 @@ function ResumePage() {
     if (!resume) return;
     setBusy("download");
     try {
-      const url = await getSignedUrl(resume.file_path);
-      await downloadFromUrl(url, resume.file_name);
+      await downloadStoredFile(resume.file_path, resume.file_name);
     } catch {
       toast.error("Download failed.");
     } finally {
@@ -130,7 +127,7 @@ function ResumePage() {
     try {
       const { error } = await supabase.from("resumes").delete().eq("id", resume.id);
       if (error) throw error;
-      await supabase.storage.from("cic-files").remove([resume.file_path]);
+      await removeStoredFile(resume.file_path).catch(() => {});
       toast.success("Resume deleted.");
       qc.invalidateQueries({ queryKey: ["my-resume", user?.id] });
     } catch (e: any) {
