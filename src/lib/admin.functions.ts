@@ -52,12 +52,24 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
       const paths = all.filter((p) => !p.startsWith("b2:"));
       if (b2Paths.length) {
         const b2 = await import("@/lib/b2.server");
-        for (const p of b2Paths) await b2.b2Delete(b2.toObjectKey(p)).catch(() => {});
+        for (const p of b2Paths) {
+          if (!(await b2.canDelete(supabaseAdmin as any, data.userId, p))) {
+            throw new Error("Could not verify access to a file in the student's assignment folder");
+          }
+          await b2.b2Delete(b2.toObjectKey(p));
+        }
       }
-      if (paths.length) await supabaseAdmin.storage.from("cic-files").remove(paths);
-      if (docs?.length) await supabaseAdmin.from("documents").delete().in("folder_id", allIds);
+      if (paths.length) {
+        const { error } = await supabaseAdmin.storage.from("cic-files").remove(paths);
+        if (error) throw new Error(error.message);
+      }
+      if (docs?.length) {
+        const { error } = await supabaseAdmin.from("documents").delete().in("folder_id", allIds);
+        if (error) throw new Error(error.message);
+      }
       for (const id of allIds.reverse()) {
-        await supabaseAdmin.from("document_folders").delete().eq("id", id);
+        const { error } = await supabaseAdmin.from("document_folders").delete().eq("id", id);
+        if (error) throw new Error(error.message);
       }
     }
 

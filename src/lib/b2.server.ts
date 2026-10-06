@@ -73,7 +73,7 @@ export async function b2Delete(objectKey: string) {
   const res = await client.fetch(url, { method: "DELETE" });
   if (!res.ok && res.status !== 404) {
     console.error("[b2:delete]", res.status, await res.text());
-    throw new Error("Could not delete file");
+    throw new Error(`Could not delete file from Backblaze B2 (HTTP ${res.status}). Check that the application key has deleteFiles permission.`);
   }
 }
 

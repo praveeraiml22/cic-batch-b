@@ -159,9 +159,16 @@ export function PublicNoticesAdmin() {
 
   async function remove(n: Notice) {
     if (!confirm("Delete this notice?")) return;
+    if (n.file_path) {
+      try {
+        await removeNoticeFile(n.file_path);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : "Could not delete the attachment; the notice was kept.");
+        return;
+      }
+    }
     const { error } = await supabase.from("notices" as any).delete().eq("id", n.id);
     if (error) return toast.error(error.message);
-    if (n.file_path) await removeNoticeFile(n.file_path);
     toast.success("Deleted");
     qc.invalidateQueries({ queryKey: ["admin-public-notices"] });
   }
@@ -221,8 +228,10 @@ export function PublicNoticesAdmin() {
 }
 
 async function removeNoticeFile(path: string) {
-  try {
-    if (isB2Path(path)) await removeStoredFile(path);
-    else await supabase.storage.from("notices").remove([path]);
-  } catch { /* file cleanup is best-effort */ }
+  if (isB2Path(path)) {
+    await removeStoredFile(path);
+    return;
+  }
+  const { error } = await supabase.storage.from("notices").remove([path]);
+  if (error) throw error;
 }

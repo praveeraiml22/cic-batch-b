@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import {
   Upload,
@@ -18,6 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { uploadToBucket, getSignedUrl, formatBytes, downloadStoredFile, removeStoredFile } from "@/lib/upload";
+import { deleteDocumentFolder } from "@/lib/files.functions";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/documents")({
@@ -255,6 +257,7 @@ function FolderCard({
   onOpen: () => void;
   onChanged: () => void;
 }) {
+  const deleteFolder = useServerFn(deleteDocumentFolder);
   async function rename() {
     const name = prompt("Rename folder", f.name)?.trim();
     if (!name || name === f.name) return;
@@ -264,9 +267,13 @@ function FolderCard({
   }
   async function remove() {
     if (!confirm("Delete this folder, its subfolders and all files inside?")) return;
-    const { error } = await supabase.from("document_folders").delete().eq("id", f.id);
-    if (error) toast.error(error.message);
-    else { toast.success("Folder deleted"); onChanged(); }
+    try {
+      await deleteFolder({ data: { folderId: f.id } });
+      toast.success("Folder and its files deleted");
+      onChanged();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the folder and its files");
+    }
   }
   return (
     <div className="rounded-2xl bg-card border border-border p-4 sm:p-5 hover:border-gold/40 transition">
@@ -362,9 +369,14 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
   }
   async function remove() {
     if (!confirm("Delete this document?")) return;
+    try {
+      await removeStoredFile(d.file_url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the file; its record was kept.");
+      return;
+    }
     const { error } = await supabase.from("documents").delete().eq("id", d.id);
     if (error) return toast.error(error.message);
-    await removeStoredFile(d.file_url).catch(() => {});
     toast.success("Deleted"); onChanged();
   }
   return (
