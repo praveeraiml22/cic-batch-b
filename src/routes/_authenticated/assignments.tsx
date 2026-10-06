@@ -5,7 +5,7 @@ import { Upload, FileText, Download, Loader2, Plus, Trash2, RefreshCcw, Lock } f
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
-import { uploadToBucket, getSignedUrl, formatBytes } from "@/lib/upload";
+import { uploadToBucket, getSignedUrl, formatBytes, removeStoredFile } from "@/lib/upload";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/assignments")({
@@ -147,6 +147,7 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
     if (!confirm("Delete this submission? This cannot be undone.")) return;
     setBusy("delete");
     try {
+      if (a.file_url) await removeStoredFile(a.file_url);
       const { error } = await supabase.from("assignments").delete().eq("id", a.id);
       if (error) throw error;
       toast.success("Assignment deleted successfully.");

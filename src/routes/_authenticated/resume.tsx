@@ -125,9 +125,9 @@ function ResumePage() {
     if (!confirm("Delete your resume? You can upload a new one anytime.")) return;
     setBusy("delete");
     try {
+      await removeStoredFile(resume.file_path);
       const { error } = await supabase.from("resumes").delete().eq("id", resume.id);
       if (error) throw error;
-      await removeStoredFile(resume.file_path).catch(() => {});
       toast.success("Resume deleted.");
       qc.invalidateQueries({ queryKey: ["my-resume", user?.id] });
     } catch (e: any) {

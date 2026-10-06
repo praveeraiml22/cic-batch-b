@@ -49,7 +49,10 @@ export async function downloadStoredFile(path: string, filename: string, onProgr
 export async function removeStoredFile(path?: string | null) {
   if (!path || path.startsWith("http")) return;
   if (isB2Path(path)) await deleteB2File({ data: { path } });
-  else await supabase.storage.from("cic-files").remove([path]);
+  else {
+    const { error } = await supabase.storage.from("cic-files").remove([path]);
+    if (error) throw error;
+  }
 }
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB

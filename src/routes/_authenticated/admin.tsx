@@ -195,9 +195,14 @@ function AssignmentsAdmin() {
   }
   async function remove(a: any) {
     if (!confirm(`Delete assignment "${a.title}"? This cannot be undone.`)) return;
+    try {
+      if (a.file_url) await removeStoredFile(a.file_url);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the file; the assignment was kept.");
+      return;
+    }
     const { error } = await supabase.from("assignments").delete().eq("id", a.id);
     if (error) return toast.error(error.message);
-    if (a.file_url) await removeStoredFile(a.file_url).catch(() => {});
     toast.success("Assignment deleted");
     qc.invalidateQueries({ queryKey: ["admin-assignments"] });
   }
