@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye, Search, Folder } from "lucide-react";
 import { toast } from "sonner";
@@ -12,7 +11,7 @@ import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
 import { deleteStoredRecord } from "@/lib/files.functions";
-import { uploadToBucket, formatBytes, isB2Path, downloadStoredFile, removeStoredFile } from "@/lib/upload";
+import { uploadToBucket, formatBytes, isB2Path, downloadStoredFile } from "@/lib/upload";
 import { listAllResumes } from "@/lib/resume.functions";
 import { AchievementsAdmin, PublicNoticesAdmin } from "@/components/admin-boards";
 

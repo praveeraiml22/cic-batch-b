@@ -74,7 +74,7 @@ function ResumePage() {
     setProgress(0);
     try {
       const { path } = await uploadToB2(file, "resume", setProgress);
-      const { data: saved, error } = await supabase.from("resumes").upsert(
+      const { error } = await supabase.from("resumes").upsert(
         {
           user_id: user.id,
           file_path: path,
