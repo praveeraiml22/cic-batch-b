@@ -27,26 +27,29 @@ export const deleteUserAccount = createServerFn({ method: "POST" })
     if (data.userId === userId) throw new Error("You cannot delete your own account");
 
     // Remove the student's assignment folder (and any nested folders + their files).
-    const { data: roots } = await supabaseAdmin
+    const { data: roots, error: rootsError } = await supabaseAdmin
       .from("document_folders")
       .select("id")
       .eq("owner_id", data.userId)
       .eq("kind", "assignment");
+    if (rootsError) throw new Error(rootsError.message);
     let frontier = (roots ?? []).map((r) => r.id);
     const allIds: string[] = [...frontier];
     while (frontier.length) {
-      const { data: kids } = await supabaseAdmin
+      const { data: kids, error: kidsError } = await supabaseAdmin
         .from("document_folders")
         .select("id")
         .in("parent_id", frontier);
+      if (kidsError) throw new Error(kidsError.message);
       frontier = (kids ?? []).map((k) => k.id);
       allIds.push(...frontier);
     }
     if (allIds.length) {
-      const { data: docs } = await supabaseAdmin
+      const { data: docs, error: docsError } = await supabaseAdmin
         .from("documents")
         .select("id, file_url")
         .in("folder_id", allIds);
+      if (docsError) throw new Error(docsError.message);
       const all = (docs ?? []).map((d) => d.file_url).filter((p) => p && !p.startsWith("http"));
       const b2Paths = all.filter((p) => p.startsWith("b2:"));
       const paths = all.filter((p) => !p.startsWith("b2:"));

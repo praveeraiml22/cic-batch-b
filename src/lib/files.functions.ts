@@ -25,6 +25,53 @@ export const deleteB2File = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Resolve a file path from its database row, verify the caller, remove the file, then remove the row. */
+export const deleteStoredRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ kind: z.enum(["assignment", "document", "resume", "notice"]), id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { userId, supabase } = context as any;
+    const b2 = await import("@/lib/b2.server");
+    const isAdmin = await b2.isAdmin(supabase, userId);
+    const tables = {
+      assignment: { table: "assignments", pathColumn: "file_url", ownerColumn: "submitted_by", bucket: "cic-files" },
+      document: { table: "documents", pathColumn: "file_url", ownerColumn: "uploaded_by", bucket: "cic-files" },
+      resume: { table: "resumes", pathColumn: "file_path", ownerColumn: "user_id", bucket: "cic-files" },
+      notice: { table: "notices", pathColumn: "file_path", ownerColumn: "created_by", bucket: "notices" },
+    } as const;
+    const config = tables[data.kind];
+    const { data: row, error: readError } = await supabase
+      .from(config.table)
+      .select(`id,${config.pathColumn},${config.ownerColumn}${data.kind === "assignment" ? ",status" : ""}`)
+      .eq("id", data.id)
+      .maybeSingle();
+    if (readError) throw new Error(readError.message);
+    if (!row) throw new Error("This item no longer exists or you do not have permission to delete it.");
+
+    const ownerId = row[config.ownerColumn];
+    if (data.kind === "notice" ? !isAdmin : !isAdmin && ownerId !== userId) {
+      throw new Error("You are not allowed to delete this item.");
+    }
+    if (data.kind === "assignment" && !isAdmin && row.status !== "submitted") {
+      throw new Error("Only submitted assignments can be deleted by their owner.");
+    }
+
+    const path = row[config.pathColumn] as string | null;
+    if (path && !path.startsWith("http")) {
+      if (path.startsWith(b2.B2_PREFIX)) {
+        if (!(await b2.canDelete(supabase, userId, path))) throw new Error("You are not allowed to delete this file.");
+        await b2.b2Delete(b2.toObjectKey(path));
+      } else {
+        const { error } = await supabase.storage.from(config.bucket).remove([path]);
+        if (error) throw new Error(`Could not delete the stored file: ${error.message}`);
+      }
+    }
+
+    const { error: deleteError } = await supabase.from(config.table).delete().eq("id", data.id);
+    if (deleteError) throw new Error(`The file was deleted, but its database record could not be removed: ${deleteError.message}`);
+    return { ok: true };
+  });
+
 /** Delete a user-owned document folder and its stored files before removing any records. */
 export const deleteDocumentFolder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
