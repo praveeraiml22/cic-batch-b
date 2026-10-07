@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
+import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye, Search, Folder } from "lucide-react";
 import { toast } from "sonner";
@@ -10,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
+import { deleteStoredRecord } from "@/lib/files.functions";
 import { uploadToBucket, formatBytes, isB2Path, downloadStoredFile, removeStoredFile } from "@/lib/upload";
 import { listAllResumes } from "@/lib/resume.functions";
 import { AchievementsAdmin, PublicNoticesAdmin } from "@/components/admin-boards";
@@ -153,6 +155,7 @@ function StatsAdmin() {
 
 /* -------- Assignments review (grouped into per-student folders) -------- */
 function AssignmentsAdmin() {
+  const deleteRecord = useServerFn(deleteStoredRecord);
   const qc = useQueryClient();
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [q, setQ] = useState("");
@@ -196,13 +199,11 @@ function AssignmentsAdmin() {
   async function remove(a: any) {
     if (!confirm(`Delete assignment "${a.title}"? This cannot be undone.`)) return;
     try {
-      if (a.file_url) await removeStoredFile(a.file_url);
+      await deleteRecord({ data: { kind: "assignment", id: a.id } });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not delete the file; the assignment was kept.");
+      toast.error(error instanceof Error ? error.message : "Could not delete the assignment; its record was kept.");
       return;
     }
-    const { error } = await supabase.from("assignments").delete().eq("id", a.id);
-    if (error) return toast.error(error.message);
     toast.success("Assignment deleted");
     qc.invalidateQueries({ queryKey: ["admin-assignments"] });
   }

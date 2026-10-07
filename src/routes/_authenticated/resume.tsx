@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { FileText, Upload, Download, Eye, Trash2, Loader2, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { PageHeader } from "@/components/page-header";
 import { formatBytes, getSignedUrl, downloadStoredFile, uploadToB2, removeStoredFile } from "@/lib/upload";
+import { deleteStoredRecord } from "@/lib/files.functions";
 
 export const Route = createFileRoute("/_authenticated/resume")({
   head: () => ({
@@ -41,6 +43,7 @@ export function validateResumeFile(file: File): string | null {
 }
 
 function ResumePage() {
+  const deleteRecord = useServerFn(deleteStoredRecord);
   const { user } = useAuth();
   const qc = useQueryClient();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -71,7 +74,7 @@ function ResumePage() {
     setProgress(0);
     try {
       const { path } = await uploadToB2(file, "resume", setProgress);
-      const { error } = await supabase.from("resumes").upsert(
+      const { data: saved, error } = await supabase.from("resumes").upsert(
         {
           user_id: user.id,
           file_path: path,
@@ -80,10 +83,13 @@ function ResumePage() {
           mime_type: file.type || null,
         },
         { onConflict: "user_id" },
-      );
+      ).select("id").single();
       if (error) throw error;
       if (previousPath && previousPath !== path) {
-        await removeStoredFile(previousPath).catch(() => {});
+        try { await removeStoredFile(previousPath); }
+        catch (cleanupError) {
+          toast.error(cleanupError instanceof Error ? `Resume replaced, but old file cleanup failed: ${cleanupError.message}` : "Resume replaced, but the old file could not be removed.");
+        }
       }
       toast.success(previousPath ? "Resume replaced successfully." : "Resume uploaded successfully.");
       qc.invalidateQueries({ queryKey: ["my-resume", user.id] });
@@ -125,9 +131,7 @@ function ResumePage() {
     if (!confirm("Delete your resume? You can upload a new one anytime.")) return;
     setBusy("delete");
     try {
-      await removeStoredFile(resume.file_path);
-      const { error } = await supabase.from("resumes").delete().eq("id", resume.id);
-      if (error) throw error;
+      await deleteRecord({ data: { kind: "resume", id: resume.id } });
       toast.success("Resume deleted.");
       qc.invalidateQueries({ queryKey: ["my-resume", user?.id] });
     } catch (e: any) {

@@ -4,6 +4,8 @@ import { Loader2, Plus, Trash2, Pencil, X, Check, FileText } from "lucide-react"
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatBytes, uploadToB2, isB2Path, removeStoredFile } from "@/lib/upload";
+import { useServerFn } from "@tanstack/react-start";
+import { deleteStoredRecord } from "@/lib/files.functions";
 
 const input = "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold/50";
 const btn = "inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:opacity-60";
@@ -108,6 +110,7 @@ const CATEGORIES = ["general", "meetup", "event", "workshop", "exam", "other"];
 const emptyNotice = { title: "", body: "", category: "general", notice_date: new Date().toISOString().slice(0, 10) };
 
 export function PublicNoticesAdmin() {
+  const deleteRecord = useServerFn(deleteStoredRecord);
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({
     queryKey: ["admin-public-notices"],
@@ -146,7 +149,12 @@ export function PublicNoticesAdmin() {
         ? await supabase.from("notices" as any).update(payload).eq("id", editing.id)
         : await supabase.from("notices" as any).insert({ ...payload, created_by: u.user?.id });
       if (res.error) throw res.error;
-      if (editing?.file_path && (file || removeFile)) await removeNoticeFile(editing.file_path);
+      if (editing?.file_path && (file || removeFile)) {
+        try { await removeNoticeFile(editing.file_path); }
+        catch (cleanupError) {
+          toast.error(cleanupError instanceof Error ? `Notice saved, but old attachment cleanup failed: ${cleanupError.message}` : "Notice saved, but the old attachment could not be removed.");
+        }
+      }
       toast.success(editing ? "Notice updated" : "Notice published");
       reset();
       qc.invalidateQueries({ queryKey: ["admin-public-notices"] });
@@ -159,16 +167,12 @@ export function PublicNoticesAdmin() {
 
   async function remove(n: Notice) {
     if (!confirm("Delete this notice?")) return;
-    if (n.file_path) {
-      try {
-        await removeNoticeFile(n.file_path);
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : "Could not delete the attachment; the notice was kept.");
-        return;
-      }
+    try {
+      await deleteRecord({ data: { kind: "notice", id: n.id } });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not delete the attachment; the notice was kept.");
+      return;
     }
-    const { error } = await supabase.from("notices" as any).delete().eq("id", n.id);
-    if (error) return toast.error(error.message);
     toast.success("Deleted");
     qc.invalidateQueries({ queryKey: ["admin-public-notices"] });
   }

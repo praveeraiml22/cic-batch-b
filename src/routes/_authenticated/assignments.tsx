@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 import { Upload, FileText, Download, Loader2, Plus, Trash2, RefreshCcw, Lock } from "lucide-react";
@@ -6,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { uploadToBucket, getSignedUrl, formatBytes, removeStoredFile } from "@/lib/upload";
+import { deleteStoredRecord } from "@/lib/files.functions";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/assignments")({
@@ -124,6 +126,7 @@ function PublicAssignments() {
 }
 
 function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
+  const deleteRecord = useServerFn(deleteStoredRecord);
   const reuploadRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState<"download" | "delete" | "reupload" | null>(null);
   const { user } = useAuth();
@@ -147,9 +150,7 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
     if (!confirm("Delete this submission? This cannot be undone.")) return;
     setBusy("delete");
     try {
-      if (a.file_url) await removeStoredFile(a.file_url);
-      const { error } = await supabase.from("assignments").delete().eq("id", a.id);
-      if (error) throw error;
+      await deleteRecord({ data: { kind: "assignment", id: a.id } });
       toast.success("Assignment deleted successfully.");
       onChanged();
     } catch (e) {
@@ -168,6 +169,12 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
         file_url: path, file_name: file.name, file_size: file.size,
       }).eq("id", a.id);
       if (error) throw error;
+      if (a.file_url) {
+        try { await removeStoredFile(a.file_url); }
+        catch (cleanupError) {
+          toast.error(cleanupError instanceof Error ? `Assignment replaced, but old file cleanup failed: ${cleanupError.message}` : "Assignment replaced, but the old file could not be removed.");
+        }
+      }
       toast.success("Assignment replaced successfully.");
       onChanged();
     } catch (e) {

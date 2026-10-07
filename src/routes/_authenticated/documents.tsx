@@ -19,7 +19,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { uploadToBucket, getSignedUrl, formatBytes, downloadStoredFile, removeStoredFile } from "@/lib/upload";
-import { deleteDocumentFolder } from "@/lib/files.functions";
+import { deleteDocumentFolder, deleteStoredRecord } from "@/lib/files.functions";
 import { PageHeader } from "@/components/page-header";
 
 export const Route = createFileRoute("/_authenticated/documents")({
@@ -343,6 +343,7 @@ function FolderForm({ parentId, onDone }: { parentId: string | null; onDone: () 
 }
 
 function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChanged: () => void }) {
+  const deleteRecord = useServerFn(deleteStoredRecord);
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   async function download() {
@@ -370,13 +371,11 @@ function DocCard({ d, ownerId, onChanged }: { d: any; ownerId?: string; onChange
   async function remove() {
     if (!confirm("Delete this document?")) return;
     try {
-      await removeStoredFile(d.file_url);
+      await deleteRecord({ data: { kind: "document", id: d.id } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not delete the file; its record was kept.");
       return;
     }
-    const { error } = await supabase.from("documents").delete().eq("id", d.id);
-    if (error) return toast.error(error.message);
     toast.success("Deleted"); onChanged();
   }
   return (
