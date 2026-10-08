@@ -10,7 +10,6 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -126,16 +125,6 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const [isMobile, setIsMobile] = useState(false);
-
-  // Require a fresh sign-in for every new browser session/tab: clear any
-  // persisted session once per tab so users must sign in again to access resources.
-  useEffect(() => {
-    if (sessionStorage.getItem("cic-tab-auth")) return;
-    sessionStorage.setItem("cic-tab-auth", "1");
-    void supabase.auth.getSession().then(({ data }) => {
-      if (data.session) void supabase.auth.signOut();
-    });
-  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 640px)");
