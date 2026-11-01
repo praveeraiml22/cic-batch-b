@@ -254,3 +254,71 @@ export const getAdminFileUrl = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { url: signed.signedUrl };
   });
+
+/** Admin Assignments section: one folder per registered student, sorted by
+ *  each student's latest assignment submission (newest first, no-submission
+ *  students last). Also creates a missing folder as a safety net — new
+ *  accounts already get theirs from the signup trigger. */
+export const listAssignmentFolders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { userId } = context as { userId: string };
+    const supabaseAdmin = await assertAdmin(userId);
+
+    const [{ data: folders, error: foldersError }, { data: profiles, error: profilesError }, { data: subs, error: subsError }] = await Promise.all([
+      supabaseAdmin.from("document_folders").select("id, name, username, owner_id, created_at").eq("kind", "assignment"),
+      supabaseAdmin.from("profiles").select("id, full_name, student_id, status"),
+      supabaseAdmin.from("assignments").select("submitted_by, created_at"),
+    ]);
+    if (foldersError) throw new Error(foldersError.message);
+    if (profilesError) throw new Error(profilesError.message);
+    if (subsError) throw new Error(subsError.message);
+
+    // Safety net: any registered member without an assignment folder gets one.
+    const folderOwners = new Set((folders ?? []).map((f) => f.owner_id));
+    const missing = (profiles ?? []).filter((p) => !folderOwners.has(p.id));
+    for (const p of missing) {
+      const uname = p.full_name?.trim() || p.student_id || p.id;
+      const { data: created, error } = await supabaseAdmin
+        .from("document_folders")
+        .insert({ name: uname, parent_id: null, owner_id: p.id, kind: "assignment", username: uname })
+        .select("id, name, username, owner_id, created_at")
+        .single();
+      if (error) throw new Error(error.message);
+      (folders ?? []).push(created);
+    }
+
+    const counts = new Map<string, number>();
+    const latest = new Map<string, string>();
+    for (const s of subs ?? []) {
+      counts.set(s.submitted_by, (counts.get(s.submitted_by) ?? 0) + 1);
+      const cur = latest.get(s.submitted_by);
+      if (!cur || s.created_at > cur) latest.set(s.submitted_by, s.created_at);
+    }
+
+    const rows = (folders ?? []).map((f) => {
+      const p = (profiles ?? []).find((x) => x.id === f.owner_id);
+      return {
+        id: f.id,
+        name: f.name,
+        username: f.username,
+        owner_id: f.owner_id,
+        folder_created_at: f.created_at,
+        full_name: p?.full_name ?? "",
+        student_id: p?.student_id ?? "",
+        status: p?.status ?? "",
+        assignment_count: counts.get(f.owner_id) ?? 0,
+        latest_submission_at: latest.get(f.owner_id) ?? null,
+      };
+    });
+
+    rows.sort((a, b) => {
+      if (a.latest_submission_at && b.latest_submission_at) {
+        return b.latest_submission_at.localeCompare(a.latest_submission_at);
+      }
+      if (a.latest_submission_at) return -1;
+      if (b.latest_submission_at) return 1;
+      return b.folder_created_at.localeCompare(a.folder_created_at);
+    });
+    return rows;
+  });
