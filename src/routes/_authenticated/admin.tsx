@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Trash2, Pencil, Check, X, Users, Shield, FileText, Megaphone, UserCog, Bell, Download, Upload, ImageIcon, Eye, Search, Folder } from "lucide-react";
@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
-import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl } from "@/lib/admin.functions";
+import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl, listAssignmentFolders } from "@/lib/admin.functions";
 import { deleteStoredRecord } from "@/lib/files.functions";
 import { uploadToBucket, formatBytes, isB2Path, downloadStoredFile } from "@/lib/upload";
 import { listAllResumes } from "@/lib/resume.functions";
@@ -155,21 +155,34 @@ function StatsAdmin() {
 /* -------- Assignments review (grouped into per-student folders) -------- */
 function AssignmentsAdmin() {
   const deleteRecord = useServerFn(deleteStoredRecord);
+  const listFolders = useServerFn(listAssignmentFolders);
   const qc = useQueryClient();
   const [openFolder, setOpenFolder] = useState<string | null>(null);
   const [q, setQ] = useState("");
 
+  // Live updates: new submissions, folder creation (new registrations) and
+  // folder deletion (deleted accounts) refresh the list automatically.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`admin-assignments-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "assignments" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-assignments"] });
+        qc.invalidateQueries({ queryKey: ["assignment-folders"] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "document_folders" }, () => {
+        qc.invalidateQueries({ queryKey: ["assignment-folders"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
   const { data: folders } = useQuery({
     queryKey: ["assignment-folders"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("document_folders")
-        .select("id,name,username,owner_id")
-        .eq("kind", "assignment")
-        .order("name");
-      if (error) throw error;
-      return data ?? [];
+      const rows = await listFolders({});
+      return rows ?? [];
     },
+    refetchInterval: 60_000,
   });
 
   const { data } = useQuery({
@@ -205,6 +218,7 @@ function AssignmentsAdmin() {
     }
     toast.success("Assignment deleted");
     qc.invalidateQueries({ queryKey: ["admin-assignments"] });
+    qc.invalidateQueries({ queryKey: ["assignment-folders"] });
   }
 
   const term = q.trim().toLowerCase();
@@ -244,6 +258,9 @@ function AssignmentsAdmin() {
                 <span className="block font-semibold truncate">{f.username ?? f.name}</span>
                 <span className="block text-xs text-muted-foreground">
                   {countFor(f.owner_id)} assignment{countFor(f.owner_id) === 1 ? "" : "s"}
+                  {f.latest_submission_at
+                    ? ` · last ${new Date(f.latest_submission_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`
+                    : " · no submissions yet"}
                 </span>
               </span>
             </button>

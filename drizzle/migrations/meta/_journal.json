@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793522212233,
+      "tag": "0000_enable_realtime_admin_assignments",
+      "breakpoints": true
+    }
+  ]
+}
