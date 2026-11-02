@@ -13,10 +13,11 @@ async function accessToken() {
 }
 
 /** Upload a file to private B2 storage (via the app server) with real progress. Returns the stored path ("b2:..."). */
-export async function uploadToB2(file: File, category: FileCategory, onProgress?: (pct: number) => void): Promise<{ path: string }> {
+export async function uploadToB2(file: File, category: FileCategory, onProgress?: (pct: number) => void, opts?: { topicId?: string }): Promise<{ path: string }> {
   if (file.size > MAX_FILE_SIZE) throw new Error("File exceeds the 5 MB limit");
   const token = await accessToken();
-  const url = `/api/files/upload?category=${category}&name=${encodeURIComponent(file.name)}`;
+  const topicQ = opts?.topicId ? `&topic=${encodeURIComponent(opts.topicId)}` : "";
+  const url = `/api/files/upload?category=${category}&name=${encodeURIComponent(file.name)}${topicQ}`;
   const path = await new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url, true);
