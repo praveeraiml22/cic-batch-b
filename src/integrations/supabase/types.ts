@@ -92,6 +92,115 @@ export type Database = {
         }
         Relationships: []
       }
+      assignment_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          sort_order: number
+          topic_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          sort_order?: number
+          topic_id: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          sort_order?: number
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_attachments_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_files: {
+        Row: {
+          assignment_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+        }
+        Insert: {
+          assignment_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+        }
+        Update: {
+          assignment_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assignment_files_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "assignments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assignment_topics: {
+        Row: {
+          created_at: string
+          created_by: string
+          deadline: string | null
+          description: string | null
+          id: string
+          is_published: boolean
+          subject: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          subject?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          deadline?: string | null
+          description?: string | null
+          id?: string
+          is_published?: boolean
+          subject?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assignments: {
         Row: {
           created_at: string
@@ -110,6 +219,7 @@ export type Database = {
           subject: string
           submitted_by: string
           title: string
+          topic_id: string | null
           updated_at: string
         }
         Insert: {
@@ -129,6 +239,7 @@ export type Database = {
           subject: string
           submitted_by: string
           title: string
+          topic_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -148,9 +259,18 @@ export type Database = {
           subject?: string
           submitted_by?: string
           title?: string
+          topic_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assignments_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "assignment_topics"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       auth_logs: {
         Row: {

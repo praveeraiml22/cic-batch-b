@@ -8,6 +8,13 @@
       "when": 1793522212233,
       "tag": "0000_enable_realtime_admin_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793597914938,
+      "tag": "0001_create_assignment_topics_and_submissions",
+      "breakpoints": true
     }
   ]
 }
