@@ -368,6 +368,11 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
     }
   }
 
+  async function openPath(path: string, name?: string) {
+    try { window.open(await getSignedUrl(path, name), "_blank"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Could not open file."); }
+  }
+
   async function remove() {
     if (locked) return;
     if (!confirm("Delete this submission? This cannot be undone.")) return;
