@@ -11,7 +11,8 @@ import { useIsAdmin } from "@/hooks/use-profile";
 import { PageHeader } from "@/components/page-header";
 import { deleteUserAccount, getAdminStats, listAdminUsers, setUserAdminRole, setMemberStatus, getAdminFileUrl, listAssignmentFolders } from "@/lib/admin.functions";
 import { deleteStoredRecord } from "@/lib/files.functions";
-import { uploadToBucket, formatBytes, isB2Path, downloadStoredFile } from "@/lib/upload";
+import { uploadToBucket, uploadToB2, formatBytes, isB2Path, downloadStoredFile } from "@/lib/upload";
+import { createAssignmentTopic, updateAssignmentTopic, deleteAssignmentTopic, deleteTopicAttachment } from "@/lib/assignments.functions";
 import { listAllResumes } from "@/lib/resume.functions";
 import { AchievementsAdmin, PublicNoticesAdmin } from "@/components/admin-boards";
 
