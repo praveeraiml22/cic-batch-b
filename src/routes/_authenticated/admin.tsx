@@ -152,8 +152,299 @@ function StatsAdmin() {
   );
 }
 
-/* -------- Assignments review (grouped into per-student folders) -------- */
+/* -------- Assignments: created assignments + per-student submission folders -------- */
 function AssignmentsAdmin() {
+  const [view, setView] = useState<"topics" | "folders">("topics");
+  const btn = (v: "topics" | "folders") =>
+    `px-4 py-2 rounded-md text-sm font-semibold transition ${view === v ? "bg-navy text-white" : "text-muted-foreground hover:text-foreground"}`;
+  return (
+    <div className="space-y-4">
+      <div className="inline-flex rounded-lg border border-border p-1 gap-1 bg-card">
+        <button onClick={() => setView("topics")} className={btn("topics")}>Created assignments</button>
+        <button onClick={() => setView("folders")} className={btn("folders")}>Student folders</button>
+      </div>
+      {view === "topics" ? <TopicsAdmin /> : <StudentFoldersAdmin />}
+    </div>
+  );
+}
+
+/* -------- Admin-created assignments with deadlines -------- */
+function TopicsAdmin() {
+  const createTopic = useServerFn(createAssignmentTopic);
+  const updateTopic = useServerFn(updateAssignmentTopic);
+  const deleteTopic = useServerFn(deleteAssignmentTopic);
+  const removeAttachment = useServerFn(deleteTopicAttachment);
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`admin-topics-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "assignment_topics" }, () => {
+        qc.invalidateQueries({ queryKey: ["admin-topics"] });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [qc]);
+
+  const { data: topics, isLoading } = useQuery({
+    queryKey: ["admin-topics"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("assignment_topics")
+        .select("*, attachments:assignment_attachments(id, file_path, file_name, file_size, sort_order), submission_count:assignments(count)")
+        .order("created_at", { ascending: false })
+        .order("sort_order", { ascending: true, referencedTable: "assignment_attachments" });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["admin-topics"] });
+
+  async function openPath(path: string, name?: string) {
+    try { window.open(await getSignedUrl(path, name), "_blank"); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Could not open file."); }
+  }
+
+  async function removeTopic(t: any) {
+    if (!confirm(`Delete assignment "${t.title}"? All its attachments and student submissions (including their files) will be permanently removed. This cannot be undone.`)) return;
+    try {
+      await deleteTopic({ data: { id: t.id } });
+      toast.success("Assignment deleted");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not delete the assignment.");
+    }
+  }
+
+  async function removeAtt(id: string) {
+    if (!confirm("Remove this attached file?")) return;
+    try {
+      await removeAttachment({ data: { id } });
+      toast.success("Attachment removed");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not remove the attachment.");
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={() => setShowForm((s) => !s)}
+          className="inline-flex items-center gap-2 rounded-full bg-navy text-white px-5 py-2.5 text-sm font-semibold hover:bg-navy-deep transition"
+        >
+          <Plus size={16} /> {showForm ? "Cancel" : "New Assignment"}
+        </button>
+        {isLoading && <Loader2 size={16} className="animate-spin text-muted-foreground" />}
+      </div>
+
+      {showForm && (
+        <TopicForm
+          onDone={() => { setShowForm(false); invalidate(); }}
+        />
+      )}
+
+      {!topics?.length && !isLoading && (
+        <p className="text-sm text-muted-foreground text-center py-8">No assignments created yet.</p>
+      )}
+
+      <div className="space-y-3">
+        {(topics ?? []).map((t: any) => {
+          const count = t.submission_count?.[0]?.count ?? 0;
+          const passed = !!t.deadline && new Date(t.deadline).getTime() < Date.now();
+          return (
+            <div key={t.id} className="rounded-xl bg-card border border-border p-4 sm:p-5">
+              {editId === t.id ? (
+                <TopicEditForm
+                  topic={t}
+                  onDone={() => { setEditId(null); invalidate(); }}
+                  onCancel={() => setEditId(null)}
+                />
+              ) : (
+                <>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-semibold break-words leading-snug">{t.title}</p>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${t.is_published ? "bg-emerald-500/10 text-emerald-700" : "bg-muted text-muted-foreground"}`}>
+                          {t.is_published ? "Published" : "Draft"}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground break-words mt-0.5">
+                        {t.subject ? `${t.subject} · ` : ""}
+                        {t.deadline
+                          ? <span className={passed ? "text-rose-600" : ""}>Deadline: {new Date(t.deadline).toLocaleString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true })}{passed ? " (passed)" : ""}</span>
+                          : "No deadline"}
+                        {" · "}{count} submission{count === 1 ? "" : "s"}
+                      </p>
+                      {t.description && <p className="text-sm text-muted-foreground mt-2 whitespace-pre-wrap break-words">{t.description}</p>}
+                    </div>
+                    <div className="flex flex-wrap gap-2 shrink-0">
+                      <button onClick={() => setEditId(t.id)} className="rounded-md border border-border px-3 py-1.5 text-xs hover:bg-muted">Edit</button>
+                      <button onClick={() => removeTopic(t)} className="rounded-md border border-destructive/40 text-destructive px-3 py-1.5 text-xs hover:bg-destructive/10">Delete</button>
+                    </div>
+                  </div>
+                  {!!t.attachments?.length && (
+                    <div className="mt-3 flex flex-wrap gap-2 border-t border-border pt-3">
+                      {t.attachments.map((att: any) => (
+                        <span key={att.id} className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-xs max-w-full">
+                          <button onClick={() => openPath(att.file_path, att.file_name)} className="truncate hover:text-navy">{att.file_name}</button>
+                          <button onClick={() => removeAtt(att.id)} aria-label="Remove attachment" className="text-rose-600 hover:text-rose-700 shrink-0"><X size={12} /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function toLocalInput(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function TopicForm({ onDone }: { onDone: () => void }) {
+  const createTopic = useServerFn(createAssignmentTopic);
+  const { user } = useAuth();
+  const [title, setTitle] = useState("");
+  const [subject, setSubject] = useState("");
+  const [description, setDescription] = useState("");
+  const [deadline, setDeadline] = useState("");
+  const [publish, setPublish] = useState(true);
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const attachments: { path: string; name: string; size: number }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        setMsg(`Uploading attachment ${i + 1} of ${files.length}...`);
+        const { path } = await uploadToB2(files[i], "assignments");
+        attachments.push({ path, name: files[i].name, size: files[i].size });
+      }
+      setMsg("Saving assignment...");
+      await createTopic({ data: {
+        title, subject, description,
+        deadline: deadline ? new Date(deadline).toISOString() : null,
+        isPublished: publish,
+        attachments,
+      }});
+      toast.success("Assignment created");
+      onDone();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not create the assignment.");
+    } finally {
+      setBusy(false);
+      setMsg("");
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="rounded-xl bg-card border border-border p-4 sm:p-5 space-y-4">
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Title</label>
+          <input required value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Subject</label>
+          <input value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Submission deadline (optional)</label>
+          <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+        </div>
+        <div className="flex items-end gap-2 pb-1">
+          <input id="topic-publish" type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} className="h-4 w-4" />
+          <label htmlFor="topic-publish" className="text-sm">Publish immediately (students see it)</label>
+        </div>
+      </div>
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Description / instructions</label>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="mt-1.5 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Attachments (PDF, DOC, PPT, images… max 5 MB each)</label>
+        <input
+          type="file" multiple
+          onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
+          className="mt-1.5 w-full text-sm file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:bg-navy file:text-white file:cursor-pointer"
+        />
+        {!!files.length && <p className="text-xs text-muted-foreground mt-1">{files.length} file{files.length === 1 ? "" : "s"} selected</p>}
+      </div>
+      <button disabled={busy} className="inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-[oklch(0.86_0.12_90)] to-[oklch(0.7_0.15_75)] text-navy-deep px-6 py-2.5 text-sm font-semibold disabled:opacity-50">
+        {busy ? <Loader2 className="animate-spin" size={16} /> : <Plus size={16} />}
+        {msg || "Create assignment"}
+      </button>
+    </form>
+  );
+}
+
+function TopicEditForm({ topic, onDone, onCancel }: { topic: any; onDone: () => void; onCancel: () => void }) {
+  const updateTopic = useServerFn(updateAssignmentTopic);
+  const [title, setTitle] = useState(topic.title ?? "");
+  const [subject, setSubject] = useState(topic.subject ?? "");
+  const [description, setDescription] = useState(topic.description ?? "");
+  const [deadline, setDeadline] = useState(toLocalInput(topic.deadline));
+  const [publish, setPublish] = useState(!!topic.is_published);
+  const [busy, setBusy] = useState(false);
+
+  async function save() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await updateTopic({ data: {
+        id: topic.id,
+        title, subject, description,
+        deadline: deadline ? new Date(deadline).toISOString() : null,
+        isPublished: publish,
+      }});
+      toast.success("Assignment updated — changes are live for everyone");
+      onDone();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not update the assignment.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid sm:grid-cols-2 gap-3">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+        <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+        <input type="datetime-local" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={publish} onChange={(e) => setPublish(e.target.checked)} className="h-4 w-4" /> Published (visible to students)
+        </label>
+      </div>
+      <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm" />
+      <div className="flex flex-wrap gap-2">
+        <button onClick={save} disabled={busy} className="inline-flex items-center gap-2 rounded-md bg-navy text-white px-4 py-2 text-xs font-semibold disabled:opacity-50">
+          {busy ? <Loader2 className="animate-spin" size={12} /> : <Check size={12} />} Save
+        </button>
+        <button onClick={onCancel} className="rounded-md border border-border px-4 py-2 text-xs">Cancel</button>
+      </div>
+    </div>
+  );
+}
+
+/* -------- Submissions review (grouped into per-student folders) -------- */
+function StudentFoldersAdmin() {
   const deleteRecord = useServerFn(deleteStoredRecord);
   const listFolders = useServerFn(listAssignmentFolders);
   const qc = useQueryClient();
