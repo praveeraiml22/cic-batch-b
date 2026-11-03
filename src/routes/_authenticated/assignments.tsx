@@ -440,6 +440,16 @@ function AssignmentRow({ a, onChanged }: { a: any; onChanged: () => void }) {
                 {busy === "download" ? <Loader2 className="animate-spin" size={12} /> : <Download size={12} />} {formatBytes(a.file_size)}
               </button>
             )}
+            {(a.files ?? []).filter((f: any) => f.file_path !== a.file_url).map((f: any) => (
+              <button
+                key={f.id}
+                onClick={() => openPath(f.file_path, f.file_name)}
+                className="inline-flex items-center gap-1.5 text-xs text-navy hover:text-gold transition max-w-full"
+              >
+                <Download size={12} className="shrink-0" /> <span className="truncate">{f.file_name}</span>
+                <span className="shrink-0 text-muted-foreground">({formatBytes(f.file_size)})</span>
+              </button>
+            ))}
             {locked ? (
               <span className="inline-flex items-center gap-1 text-xs text-muted-foreground"><Lock size={11} /> Reviewed (Locked)</span>
             ) : (
