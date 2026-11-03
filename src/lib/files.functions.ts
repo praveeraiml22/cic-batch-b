@@ -57,12 +57,23 @@ export const deleteStoredRecord = createServerFn({ method: "POST" })
     }
 
     const path = row[config.pathColumn] as string | null;
-    if (path && !path.startsWith("http")) {
-      if (path.startsWith(b2.B2_PREFIX)) {
-        if (!(await b2.canDelete(supabase, userId, path))) throw new Error("You are not allowed to delete this file.");
-        await b2.b2Delete(b2.toObjectKey(path));
+    // Assignment submissions may carry extra files in assignment_files — clean those up too.
+    const extraPaths: string[] = [];
+    if (data.kind === "assignment") {
+      const { data: files, error: filesError } = await supabase
+        .from("assignment_files")
+        .select("file_path")
+        .eq("assignment_id", data.id);
+      if (filesError) throw new Error(filesError.message);
+      extraPaths.push(...(files ?? []).map((f: any) => f.file_path as string).filter(Boolean));
+    }
+    const pathsToDelete = [...(path && !path.startsWith("http") ? [path] : []), ...extraPaths];
+    for (const p of pathsToDelete) {
+      if (p.startsWith(b2.B2_PREFIX)) {
+        if (!(await b2.canDelete(supabase, userId, p))) throw new Error("You are not allowed to delete this file.");
+        await b2.b2Delete(b2.toObjectKey(p));
       } else {
-        const { error } = await supabase.storage.from(config.bucket).remove([path]);
+        const { error } = await supabase.storage.from(config.bucket).remove([p]);
         if (error) throw new Error(`Could not delete the stored file: ${error.message}`);
       }
     }
